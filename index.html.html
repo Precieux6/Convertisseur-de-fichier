@@ -1,0 +1,133 @@
+<html lang="fr">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Convertisseur de Fichiers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <header class="bg-indigo-600 text-white py-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Convertisseur de Fichiers</h1>
+            <nav>
+                <ul class="flex space-x-4">
+                    <li><a class="hover:text-gray-300" href="#">Accueil</a></li>
+                    <li><a class="hover:text-gray-300" href="#">Fonctionnalités</a></li>
+                    <li><a class="hover:text-gray-300" href="#">Tarifs</a></li>
+                    <li><a class="hover:text-gray-300" href="#">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main class="container mx-auto py-12">
+        <section class="text-center mb-12">
+            <h2 class="text-4xl font-bold mb-4 text-indigo-600">Convertissez vos fichiers facilement</h2>
+            <p class="text-lg text-gray-600">Convertissez vos fichiers Word, PDF, EPUB, MOBI et plus encore vers le format Amazon KDP et vice-versa.</p>
+        </section>
+        <section class="bg-white p-8 rounded-lg shadow-md max-w-2xl mx-auto">
+            <h3 class="text-2xl font-bold mb-4 text-indigo-600">Sélectionnez votre fichier</h3>
+            <form class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700" for="file-upload">Télécharger un fichier</label>
+                    <input class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="file-upload" type="file"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700" for="format-select">Choisissez le format de conversion</label>
+                    <select class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="format-select">
+                        <option>Amazon KDP</option>
+                        <option>PDF</option>
+                        <option>EPUB</option>
+                        <option>MOBI</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700" for="secure-pdf">Sécuriser le PDF</label>
+                    <input class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="secure-pdf" type="checkbox"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700" for="compress-pdf">Compresser le PDF</label>
+                    <input class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="compress-pdf" type="checkbox"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700" for="merge-pdf">Fusionner plusieurs PDF</label>
+                    <input class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="merge-pdf" type="checkbox"/>
+                </div>
+                <button class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" type="submit">Convertir</button>
+            </form>
+        </section>
+        <section class="mt-12">
+            <h3 class="text-2xl font-bold mb-4 text-indigo-600">Fonctionnalités</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                    <img alt="Icône de conversion rapide" class="mx-auto mb-4" height="100" src="https://storage.googleapis.com/a1aa/image/ezlm8X9FQWWwLyS9wj06HoRuUW5dmCxR9v0VNC8PSsQOG1AKA.jpg" width="100"/>
+                    <h4 class="text-xl font-bold mb-2 text-indigo-600">Conversion Rapide</h4>
+                    <p class="text-gray-600">Convertissez vos fichiers en quelques secondes.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                    <img alt="Icône de formats multiples" class="mx-auto mb-4" height="100" src="https://storage.googleapis.com/a1aa/image/0gqvJ31ETo6bABdCfyzMTSLMlEasqWtERCVLv89TSq3MG1AKA.jpg" width="100"/>
+                    <h4 class="text-xl font-bold mb-2 text-indigo-600">Formats Multiples</h4>
+                    <p class="text-gray-600">Supporte plusieurs formats de fichiers.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                    <img alt="Icône de sécurité des données" class="mx-auto mb-4" height="100" src="https://storage.googleapis.com/a1aa/image/lbvWikcxetzgNyApSnoPQ6GfJOyTRFbd25YKQLaCgfA3YUDoA.jpg" width="100"/>
+                    <h4 class="text-xl font-bold mb-2 text-indigo-600">Sécurité des Données</h4>
+                    <p class="text-gray-600">Vos fichiers sont sécurisés et protégés.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                    <img alt="Icône de compression de PDF" class="mx-auto mb-4" height="100" src="https://storage.googleapis.com/a1aa/image/0gqvJ31ETo6bABdCfyzMTSLMlEasqWtERCVLv89TSq3MG1AKA.jpg" width="100"/>
+                    <h4 class="text-xl font-bold mb-2 text-indigo-600">Compression de PDF</h4>
+                    <p class="text-gray-600">Réduisez la taille de vos fichiers PDF sans perte de qualité.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                    <img alt="Icône de fusion de PDF" class="mx-auto mb-4" height="100" src="https://storage.googleapis.com/a1aa/image/ezlm8X9FQWWwLyS9wj06HoRuUW5dmCxR9v0VNC8PSsQOG1AKA.jpg" width="100"/>
+                    <h4 class="text-xl font-bold mb-2 text-indigo-600">Fusion de PDF</h4>
+                    <p class="text-gray-600">Fusionnez plusieurs fichiers PDF en un seul document.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                    <img alt="Icône de division de PDF" class="mx-auto mb-4" height="100" src="https://storage.googleapis.com/a1aa/image/lbvWikcxetzgNyApSnoPQ6GfJOyTRFbd25YKQLaCgfA3YUDoA.jpg" width="100"/>
+                    <h4 class="text-xl font-bold mb-2 text-indigo-600">Division de PDF</h4>
+                    <p class="text-gray-600">Divisez un fichier PDF en plusieurs fichiers plus petits.</p>
+                </div>
+            </div>
+        </section>
+        <section class="mt-12">
+            <h3 class="text-2xl font-bold mb-4 text-indigo-600">Prévisualisation des Fichiers</h3>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="text-center">
+                    <img alt="Prévisualisation de fichier" class="mx-auto mb-4" height="200" src="https://storage.googleapis.com/a1aa/image/YeWjfHeW1SOnJoiFoCz9jsHtw4s9mG2upRgFqTt9PwVlfoGQB.jpg" width="200"/>
+                    <p class="text-gray-600">Prévisualisez vos fichiers avant et après la conversion.</p>
+                </div>
+            </div>
+        </section>
+        <section class="mt-12">
+            <h3 class="text-2xl font-bold mb-4 text-indigo-600">FAQ</h3>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="mb-4">
+                    <h4 class="text-xl font-bold mb-2 text-indigo-600">Comment convertir un fichier ?</h4>
+                    <p class="text-gray-600">Sélectionnez votre fichier, choisissez le format de conversion et cliquez sur "Convertir".</p>
+                </div>
+                <div class="mb-4">
+                    <h4 class="text-xl font-bold mb-2 text-indigo-600">Est-ce que mes fichiers sont sécurisés ?</h4>
+                    <p class="text-gray-600">Oui, vos fichiers sont sécurisés et protégés pendant le processus de conversion.</p>
+                </div>
+                <div class="mb-4">
+                    <h4 class="text-xl font-bold mb-2 text-indigo-600">Quels formats de fichiers sont supportés ?</h4>
+                    <p class="text-gray-600">Nous supportons les formats Word, PDF, EPUB, MOBI, et Amazon KDP.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer class="bg-indigo-600 text-white py-4">
+        <div class="container mx-auto text-center">
+            <p>© 2023 Convertisseur de Fichiers. Tous droits réservés.</p>
+        </div>
+    </footer>
+</body>
+</html>
