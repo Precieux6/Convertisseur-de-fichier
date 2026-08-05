@@ -1,14 +1,14 @@
 import os
 import shutil
+import subprocess
 import fitz  # PyMuPDF
 from typing import List, Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-app = FastAPI(title="Convertisseur & Suite PDF API")
+app = FastAPI(title="Convertisseur Universel Pro API")
 
-# Configuration CORS pour autoriser GitHub Pages
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,14 +20,52 @@ app.add_middleware(
 TEMP_DIR = "temp_processing"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+def convert_to_pdf_pivot(input_path: str) -> str:
+    """ Convertit n'importe quel fichier (DOCX, EPUB, MOBI, TXT) en PDF temporaire """
+    ext = os.path.splitext(input_path)[1].lower()
+    if ext == ".pdf":
+        return input_path
+
+    pdf_output_path = f"{os.path.splitext(input_path)[0]}_pivot.pdf"
+
+    try:
+        # Conversion DOCX / TXT -> PDF via LibreOffice (si disponible sur le serveur Render)
+        if ext in [".docx", ".doc", ".txt", ".rtf"]:
+            cmd = ["soffice", "--headless", "--convert-to", "pdf", input_path, "--outdir", TEMP_DIR]
+            subprocess.run(cmd, check=True)
+            filename = os.path.basename(input_path)
+            return os.path.join(TEMP_DIR, f"{os.path.splitext(filename)[0]}.pdf")
+
+        # Conversion EPUB / MOBI / AZW3 (Kindle) -> PDF via Calibre CLI
+        elif ext in [".epub", ".mobi", ".azw3", ".kfx"]:
+            cmd = ["ebook-convert", input_path, pdf_output_path]
+            subprocess.run(cmd, check=True)
+            return pdf_output_path
+
+    except Exception as e:
+        # Si le convertisseur système n'est pas disponible, basculer sur une ouverture via PyMuPDF
+        try:
+            doc = fitz.open(input_path)
+            pdf_bytes = doc.convert_to_pdf()
+            with open(pdf_output_path, "wb") as f:
+                f.write(pdf_bytes)
+            return pdf_output_path
+        except Exception:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Impossible de traiter le fichier {os.path.basename(input_path)}. Format incompatible ou corrompu."
+            )
+
+    return input_path
+
 @app.get("/")
 def read_root():
-    return {"message": "L'API de conversion est fonctionnelle !"}
+    return {"status": "L'API de conversion est fonctionnelle et prête !"}
 
 @app.post("/convert")
 async def convert_files(
     files: List[UploadFile] = File(...),
-    output_format: str = Form("docx"),
+    output_format: str = Form("pdf"),
     secure: bool = Form(False),
     password: Optional[str] = Form(""),
     compress: bool = Form(False),
@@ -36,24 +74,26 @@ async def convert_files(
     page_range: Optional[str] = Form("")
 ):
     if not files:
-        raise HTTPException(status_code=400, detail="Aucun fichier envoyé.")
+        raise HTTPException(status_code=400, detail="Aucun fichier fourni.")
 
     saved_paths = []
+    pdf_pivot_paths = []
 
     try:
-        # Enregistrer les fichiers reçus localement
+        # 1. Sauvegarde locale des fichiers
         for upload in files:
             file_path = os.path.join(TEMP_DIR, upload.filename)
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(upload.file, buffer)
             saved_paths.append(file_path)
 
-        output_path = os.path.join(TEMP_DIR, f"resultat.{output_format}")
+        # 2. Conversion universelle de TOUS les fichiers en PDF PIVOT
+        for fp in saved_paths:
+            pdf_pivot_paths.append(convert_to_pdf_pivot(fp))
 
-        # 1. Traitement : Division / Extraction de pages
-        if split and page_range and len(saved_paths) == 1:
-            src_pdf = saved_paths[0]
-            doc = fitz.open(src_pdf)
+        # 3. Traitement de la Division (Split)
+        if split and page_range and len(pdf_pivot_paths) == 1:
+            doc = fitz.open(pdf_pivot_paths[0])
             new_doc = fitz.open()
 
             selected_pages = []
@@ -69,51 +109,52 @@ async def convert_files(
                 if 0 <= pno < len(doc):
                     new_doc.insert_pdf(doc, from_page=pno, to_page=pno)
 
-            split_pdf_path = os.path.join(TEMP_DIR, "split_output.pdf")
-            new_doc.save(split_pdf_path)
+            split_output = os.path.join(TEMP_DIR, "split_output.pdf")
+            new_doc.save(split_output)
             doc.close()
             new_doc.close()
-            saved_paths = [split_pdf_path]
+            pdf_pivot_paths = [split_output]
 
-        # 2. Traitement : Fusion de plusieurs PDF
-        if merge and len(saved_paths) > 1:
+        # 4. Traitement de la Fusion (Merge Multi-Formats)
+        if merge and len(pdf_pivot_paths) > 1:
             merged_doc = fitz.open()
-            for pdf_path in saved_paths:
+            for pdf_path in pdf_pivot_paths:
                 doc = fitz.open(pdf_path)
                 merged_doc.insert_pdf(doc)
                 doc.close()
-            merged_pdf_path = os.path.join(TEMP_DIR, "merged_output.pdf")
-            merged_doc.save(merged_pdf_path)
-            merged_doc.close()
-            saved_paths = [merged_pdf_path]
-
-        # 3. Sauvegarde finale
-        target_file = saved_paths[0]
-
-        if output_format.lower() == "pdf" or target_file.endswith(".pdf"):
-            doc = fitz.open(target_file)
-            deflate = True if compress else False
-
-            # Appliquer les options uniquement si la sécurisation est activée avec un mot de passe
-            if secure and password:
-                doc.save(
-                    output_path,
-                    deflate=deflate,
-                    encryption=fitz.PDF_ENCRYPT_ALGORITHM_AES_128,
-                    user_pw=password
-                )
-            else:
-                doc.save(output_path, deflate=deflate)
             
+            merged_output = os.path.join(TEMP_DIR, "merged_output.pdf")
+            merged_doc.save(merged_output)
+            merged_doc.close()
+            pdf_pivot_paths = [merged_output]
+
+        final_pdf = pdf_pivot_paths[0]
+        final_output_path = os.path.join(TEMP_DIR, f"resultat_final.{output_format}")
+
+        # 5. Export au format de destination choisi
+        if output_format.lower() == "pdf":
+            doc = fitz.open(final_pdf)
+            deflate = True if compress else False
+            if secure and password:
+                doc.save(final_output_path, deflate=deflate, encryption=fitz.PDF_ENCRYPT_ALGORITHM_AES_128, user_pw=password)
+            else:
+                doc.save(final_output_path, deflate=deflate)
             doc.close()
+
+        elif output_format.lower() in ["epub", "mobi", "azw3", "docx"]:
+            try:
+                cmd = ["ebook-convert", final_pdf, final_output_path]
+                subprocess.run(cmd, check=True)
+            except Exception:
+                shutil.copy(final_pdf, final_output_path)
         else:
-            shutil.copy(target_file, output_path)
+            shutil.copy(final_pdf, final_output_path)
 
         return FileResponse(
-            output_path,
-            filename=f"document_converti.{output_format}",
+            final_output_path,
+            filename=f"document_modifie.{output_format}",
             media_type="application/octet-stream"
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Erreur de traitement : {str(e)}")
