@@ -12,21 +12,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="style.css"/>
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen bg-[#0b0f19] text-slate-100 antialiased relative overflow-x-hidden">
 
-    <!-- Éléments décoratifs lumineux d'arrière-plan (Glow effects) -->
+    <!-- Éléments décoratifs lumineux d'arrière-plan -->
     <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-indigo-600/20 via-purple-600/20 to-pink-500/10 blur-[120px] pointer-events-none rounded-full -z-10"></div>
     <div class="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500/10 blur-[100px] pointer-events-none rounded-full -z-10"></div>
 
     <!-- Navigation Header Pro -->
     <header class="border-b border-slate-800/80 bg-[#0b0f19]/80 backdrop-blur-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <!-- Logo -->
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 text-white font-bold text-xl">
                     <i class="fa-solid fa-file-export"></i>
@@ -36,7 +34,6 @@
                 </span>
             </div>
 
-            <!-- Menu de navigation -->
             <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
                 <a href="#convertisseur" class="hover:text-indigo-400 transition-colors">Convertisseur</a>
                 <a href="#fonctionnalites" class="hover:text-indigo-400 transition-colors">Fonctionnalités</a>
@@ -44,7 +41,6 @@
                 <a href="#faq" class="hover:text-indigo-400 transition-colors">FAQ</a>
             </nav>
 
-            <!-- Bouton d'action Rapide -->
             <a href="#convertisseur" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-105">
                 <i class="fa-solid fa-bolt text-yellow-300"></i> Lancer l'outil
             </a>
@@ -54,7 +50,6 @@
     <!-- Section Principale -->
     <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-12 sm:py-16 relative z-10" id="convertisseur">
         
-        <!-- En-tête de section -->
         <div class="text-center mb-8 space-y-3">
             <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
                 <i class="fa-solid fa-sparkles text-indigo-400"></i> Traitement instantané & Sécurisé
@@ -67,12 +62,12 @@
             </p>
         </div>
 
-        <!-- Carte Principale (Design Blanc/Épuré en relief) -->
+        <!-- Carte Principale -->
         <div class="bg-white rounded-3xl p-6 sm:p-10 shadow-2xl shadow-indigo-950/50 border border-slate-100 text-slate-800 transition-all">
             
             <form id="converter-form" class="space-y-6">
                 
-                <!-- Zone de Dépôt Modernisée -->
+                <!-- Zone de Dépôt -->
                 <div id="drop-zone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50/80 transition-all duration-300 rounded-2xl p-8 sm:p-12 text-center cursor-pointer relative group">
                     <input type="file" id="file-upload" name="files" multiple class="hidden" />
                     
@@ -91,7 +86,7 @@
                     </div>
                 </div>
 
-                <!-- Liste des fichiers sélectionnés -->
+                <!-- Liste des fichiers -->
                 <div id="file-list-container" class="hidden bg-slate-50 p-4 rounded-2xl border border-slate-200">
                     <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
                         <span>Fichiers prêts à être traités</span>
@@ -124,7 +119,6 @@
                     <div id="pdf-options-box" class="md:col-span-7 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/80 space-y-3">
                         <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Options spécifiques PDF</h2>
                         
-                        <!-- Option Sécuriser -->
                         <label class="flex items-center space-x-3 cursor-pointer group">
                             <input type="checkbox" id="secure-pdf" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
                             <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
@@ -135,7 +129,6 @@
                             <input type="password" id="pdf-password" placeholder="Saisir le mot de passe" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
 
-                        <!-- Option Compresser -->
                         <label class="flex items-center space-x-3 cursor-pointer group">
                             <input type="checkbox" id="compress-pdf" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
                             <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
@@ -143,7 +136,6 @@
                             </span>
                         </label>
 
-                        <!-- Option Fusionner -->
                         <label class="flex items-center space-x-3 cursor-pointer group">
                             <input type="checkbox" id="merge-pdf" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
                             <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
@@ -151,7 +143,6 @@
                             </span>
                         </label>
 
-                        <!-- Option Diviser / Extraire -->
                         <label class="flex items-center space-x-3 cursor-pointer group">
                             <input type="checkbox" id="split-pdf" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
                             <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
@@ -165,7 +156,20 @@
                     </div>
                 </div>
 
-                <!-- Bouton d'action Principal (Stylisé) -->
+                <!-- Composant de la Barre de Progression (Nouveau) -->
+                <div id="progress-container" class="hidden space-y-2 pt-2">
+                    <div class="flex justify-between items-center text-xs font-semibold text-slate-600">
+                        <span id="progress-status" class="flex items-center gap-2">
+                            <i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> Envoi du fichier...
+                        </span>
+                        <span id="progress-percent" class="text-indigo-600 font-bold text-sm">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden p-0.5 border border-slate-200 shadow-inner">
+                        <div id="progress-bar" class="bg-gradient-to-r from-indigo-600 to-violet-600 h-full rounded-full transition-all duration-300 w-0"></div>
+                    </div>
+                </div>
+
+                <!-- Bouton d'action Principal -->
                 <button type="submit" id="submit-btn" class="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-base rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transition-all duration-300 flex items-center justify-center gap-3 active:scale-[0.99]">
                     <i class="fa-solid fa-gear text-lg"></i>
                     <span>Lancer la Conversion</span>
@@ -174,7 +178,6 @@
         </div>
     </main>
 
-    <!-- Footer Pro -->
     <footer class="border-t border-slate-800/80 bg-[#070a11] py-8 mt-auto text-center text-xs text-slate-500">
         <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p>© 2026 FileConvert Pro. Tous droits réservés.</p>
