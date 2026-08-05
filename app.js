@@ -9,7 +9,7 @@ let selectedFiles = [];
 
 // Éléments du DOM
 const dropZone = document.getElementById("dropZone");
-const fileInput = document.getElementById("fileInput");
+const fileInput = document.getElementById("file-upload");
 const fileList = document.getElementById("fileList");
 const convertBtn = document.getElementById("convertBtn");
 const statusContainer = document.getElementById("statusContainer");
