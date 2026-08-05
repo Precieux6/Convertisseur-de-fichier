@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-50">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Convertisseur de Fichiers & Suite PDF | KDP, EPUB, PDF</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <!-- Google Fonts Inter & Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+    <!-- PDF-Lib pour manipulation PDF côté client -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <!-- Styles sur-mesure -->
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body class="flex flex-col min-h-full font-sans text-slate-800 antialiased selection:bg-indigo-500 selection:text-white">
+    
+    <!-- Toast / Notification Bar -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                        <i class="fa-solid fa-file-export text-white text-lg"></i>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">FileConvert Pro</span>
+                </div>
+                <nav class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-300">
+                    <a href="#convert-section" class="hover:text-indigo-400 transition-colors">Convertisseur</a>
+                    <a href="#features-section" class="hover:text-indigo-400 transition-colors">Fonctionnalités</a>
+                    <a href="#preview-section" class="hover:text-indigo-400 transition-colors">Aperçu</a>
+                    <a href="#faq-section" class="hover:text-indigo-400 transition-colors">FAQ</a>
+                </nav>
+                <div class="flex items-center gap-3">
+                    <a href="#convert-section" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-md hover:shadow-indigo-500/25 transition-all">
+                        <i class="fa-solid fa-bolt text-amber-300"></i> Lancer l'outil
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow">
+        <!-- Hero Section -->
+        <section class="relative pt-16 pb-20 overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white">
+            <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+                <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-6 backdrop-blur-sm">
+                    <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span> Format Spécial Amazon KDP & Traitement 100% Sécurisé
+                </span>
+                <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight max-w-4xl mx-auto leading-tight">
+                    Convertissez vos livres & documents en quelques clics
+                </h1>
+                <p class="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto font-normal">
+                    Transformez vos fichiers Word, PDF, EPUB et MOBI prêt pour **Amazon KDP**, avec une suite complète de manipulation PDF ultra-rapide.
+                </p>
+            </div>
+        </section>
+
+        <!-- Main Converter Tool Section -->
+        <section id="convert-section" class="-mt-12 relative z-20 max-w-4xl mx-auto px-4 sm:px-6">
+            <div class="bg-white rounded-2xl shadow-2xl border border-slate-200/80 p-6 sm:p-10 backdrop-blur-xl">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Espace de Conversion</h2>
+                        <p class="text-sm text-slate-500">Sélectionnez vos fichiers et configurez vos options de sortie</p>
+                    </div>
+                    <span id="file-counter" class="hidden text-xs font-semibold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full border border-indigo-100">0 fichier sélectionné</span>
+                </div>
+
+                <form id="converter-form" action="/api/convert" method="POST" enctype="multipart/form-data" class="space-y-6">
+                    
+                    <!-- Drag and Drop Dropzone -->
+                    <div id="drop-zone" class="dropzone-border relative rounded-2xl p-8 text-center bg-slate-50 hover:bg-indigo-50/50 cursor-pointer transition-all group">
+                        <input id="file-upload" name="files" type="file" multiple class="hidden" accept=".pdf,.doc,.docx,.epub,.mobi,.txt"/>
+                        
+                        <div class="flex flex-col items-center justify-center space-y-3">
+                            <div class="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                                <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-base font-semibold text-slate-700">
+                                    Glissez-déposez vos fichiers ici, ou <span class="text-indigo-600 underline">parcourez</span>
+                                </p>
+                                <p class="text-xs text-slate-400 mt-1">
+                                    Formats supportés : PDF, WORD (.docx), EPUB, MOBI, TXT (Max: 50MB)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Files List -->
+                    <div id="file-list-container" class="hidden space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        <!-- Format Selection -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2" for="format-select">
+                                <i class="fa-solid fa-arrows-rotate text-indigo-500 mr-1.5"></i> Format de destination
+                            </label>
+                            <select id="format-select" name="target_format" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium text-slate-800 transition-all">
+                                <option value="kdp">Amazon KDP (.kpf / EPUB)</option>
+                                <option value="pdf" selected>Document PDF (.pdf)</option>
+                                <option value="epub">E-Book EPUB (.epub)</option>
+                                <option value="mobi">Kindle MOBI (.mobi)</option>
+                                <option value="docx">Microsoft Word (.docx)</option>
+                            </select>
+                        </div>
+
+                        <!-- Action Context Options (Dynamic) -->
+                        <div id="pdf-options-box" class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+                            <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Options spécifiques PDF</span>
+                            
+                            <label class="flex items-center space-x-3 cursor-pointer group">
+                                <input id="secure-pdf" name="options[]" value="secure" type="checkbox" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
+                                <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900"><i class="fa-solid fa-lock text-slate-400 mr-1"></i> Sécuriser le PDF (Mot de passe)</span>
+                            </label>
+                            
+                            <label class="flex items-center space-x-3 cursor-pointer group">
+                                <input id="compress-pdf" name="options[]" value="compress" type="checkbox" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
+                                <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900"><i class="fa-solid fa-file-contract text-slate-400 mr-1"></i> Compresser la taille du fichier</span>
+                            </label>
+                            
+                            <label class="flex items-center space-x-3 cursor-pointer group">
+                                <input id="merge-pdf" name="options[]" value="merge" type="checkbox" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
+                                <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900"><i class="fa-solid fa-object-group text-slate-400 mr-1"></i> Fusionner les fichiers importés</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Password Field for Security (Hidden by default) -->
+                    <div id="password-field" class="hidden animate-fadeIn">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1" for="pdf-password">Mot de passe de protection</label>
+                        <input type="password" id="pdf-password" name="pdf_password" placeholder="Entrez un mot de passe fort" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <!-- Progress Bar Component -->
+                    <div id="progress-container" class="hidden space-y-2">
+                        <div class="flex justify-between text-xs font-semibold text-slate-600">
+                            <span id="progress-status">Traitement du document en cours...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                            <div id="progress-bar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 w-0 transition-all duration-300"></div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button id="convert-btn" type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-semibold py-4 px-6 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2 transition-all cursor-pointer">
+                        <i class="fa-solid fa-gear text-lg"></i>
+                        <span id="btn-text">Lancer la Conversion</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Features Grid Section -->
+        <section id="features-section" class="py-24 bg-slate-100/60 mt-20 border-t border-slate-200/60">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-16">
+                    <h2 class="text-3xl font-extrabold text-slate-900">Une suite complète pour vos documents</h2>
+                    <p class="mt-4 text-slate-600">Tout ce dont vous avez besoin pour vos manuscrits, livres électroniques et documents professionnels.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Feature 1 -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300">
+                        <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-xl mb-6">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-slate-900 mb-2">Conversion Ultra Rapide</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">Algorithmes optimisés pour transformer vos fichiers Word, EPUB et MOBI vers le format Amazon KDP en quelques secondes.</p>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300">
+                        <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-xl mb-6">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-slate-900 mb-2">Formats Multiples</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">Prise en charge complète des extensions d'e-books et bureautiques les plus répandues sur le marché.</p>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300">
+                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl mb-6">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-slate-900 mb-2">Sécurité & Confidentialité</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">Traitement sécurisé. Vos fichiers sont supprimés automatiquement et traités localement quand cela est possible.</p>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300">
+                        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-xl mb-6">
+                            <i class="fa-solid fa-compress"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-slate-900 mb-2">Compression Intelligente</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">Réduisez le poids de vos fichiers PDF sans détériorer la lisibilité ou la qualité graphique.</p>
+                    </div>
+
+                    <!-- Feature 5 -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300">
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl mb-6">
+                            <i class="fa-solid fa-code-merge"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-slate-900 mb-2">Fusion Instantanée</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">Assemblez plusieurs documents PDF isolés en une seule brochure ou livre complet parfaitement structuré.</p>
+                    </div>
+
+                    <!-- Feature 6 -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300">
+                        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center text-xl mb-6">
+                            <i class="fa-solid fa-scissors"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-slate-900 mb-2">Division Précise</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">Extrayez des pages spécifiques ou découpez vos PDF volumineux en sous-fichiers distincts.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dynamic Preview Section -->
+        <section id="preview-section" class="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 shadow-sm">
+                <div class="max-w-2xl mb-8">
+                    <h3 class="text-2xl font-bold text-slate-900">Prévisualisation Interactive</h3>
+                    <p class="text-slate-500 text-sm mt-1">Examinez la structure et les détails de vos fichiers chargés avant d'effectuer la conversion.</p>
+                </div>
+
+                <div id="preview-placeholder" class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center bg-slate-50">
+                    <i class="fa-solid fa-eye text-4xl text-slate-300 mb-3"></i>
+                    <p class="text-slate-600 font-medium">Aucun document chargé à prévisualiser</p>
+                    <p class="text-xs text-slate-400 mt-1">Importez un fichier ci-dessus pour afficher ses informations en temps réel.</p>
+                </div>
+
+                <div id="preview-content" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1 bg-slate-900 text-white p-6 rounded-2xl space-y-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Métadonnées du document</h4>
+                        <div class="space-y-3 text-sm">
+                            <div>
+                                <span class="text-slate-400 block text-xs">Nom du fichier :</span>
+                                <span id="preview-filename" class="font-semibold break-all">document.pdf</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block text-xs">Taille :</span>
+                                <span id="preview-filesize" class="font-semibold">0 MB</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block text-xs">Type MIME :</span>
+                                <span id="preview-filetype" class="font-mono text-xs bg-slate-800 px-2 py-1 rounded text-indigo-300">application/pdf</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[220px]">
+                        <div id="preview-canvas-container" class="w-full text-center">
+                            <i class="fa-solid fa-file-pdf text-6xl text-indigo-500 mb-3"></i>
+                            <p id="preview-summary" class="text-sm font-semibold text-slate-700">Document prêt à être traité</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq-section" class="py-20 bg-slate-50 border-t border-slate-200/60">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6">
+                <h3 class="text-3xl font-extrabold text-slate-900 text-center mb-12">Foire aux Questions</h3>
+                <div class="space-y-4">
+                    <details class="group bg-white rounded-2xl border border-slate-200 p-6 [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex items-center justify-between cursor-pointer font-bold text-slate-900 text-lg">
+                            <span>Comment fonctionne la conversion vers Amazon KDP ?</span>
+                            <span class="transition group-open:rotate-180">
+                                <i class="fa-solid fa-chevron-down text-indigo-600"></i>
+                            </span>
+                        </summary>
+                        <p class="mt-4 text-slate-600 leading-relaxed text-sm">
+                            L'outil analyse la mise en page de vos manuscrits (Word ou PDF) et réorganise la structure HTML/EPUB interne pour garantir la conformité avec les exigences de publication directe Kindle (KDP).
+                        </p>
+                    </details>
+
+                    <details class="group bg-white rounded-2xl border border-slate-200 p-6 [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex items-center justify-between cursor-pointer font-bold text-slate-900 text-lg">
+                            <span>Mes documents restent-ils confidentiels ?</span>
+                            <span class="transition group-open:rotate-180">
+                                <i class="fa-solid fa-chevron-down text-indigo-600"></i>
+                            </span>
+                        </summary>
+                        <p class="mt-4 text-slate-600 leading-relaxed text-sm">
+                            Absolument. La plupart des opérations de fusion, découpe ou sécurisation de PDF sont réalisées localement dans votre navigateur grâce au moteur WebAssembly. Aucun fichier confidentiel ne subsiste sur nos serveurs.
+                        </p>
+                    </details>
+
+                    <details class="group bg-white rounded-2xl border border-slate-200 p-6 [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex items-center justify-between cursor-pointer font-bold text-slate-900 text-lg">
+                            <span>Quelles sont les limites de taille de fichier ?</span>
+                            <span class="transition group-open:rotate-180">
+                                <i class="fa-solid fa-chevron-down text-indigo-600"></i>
+                            </span>
+                        </summary>
+                        <p class="mt-4 text-slate-600 leading-relaxed text-sm">
+                            Vous pouvez traiter gratuitement des fichiers jusqu'à 50 Mo par envoi. Pour des livres particulièrement volumineux avec de nombreuses illustrations, la compression PDF préalable est recommandée.
+                        </p>
+                    </details>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
+            <div class="flex justify-center items-center gap-2 text-white font-bold text-lg">
+                <i class="fa-solid fa-file-export text-indigo-500"></i> FileConvert Pro
+            </div>
+            <p class="text-sm text-slate-500">© 2026 Convertisseur de Fichiers & Suite PDF. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <!-- Script JavaScript principal -->
+    <script src="app.js"></script>
+</body>
+</html>
