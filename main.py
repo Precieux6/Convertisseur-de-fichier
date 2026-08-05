@@ -87,28 +87,26 @@ async def convert_files(
             merged_doc.close()
             saved_paths = [merged_pdf_path]
 
-        # 3. Conversion de format basique ou finalisation
+        # 3. Sauvegarde finale
         target_file = saved_paths[0]
 
-        # Si le format final est PDF et qu'une protection par mot de passe est demandée
         if output_format.lower() == "pdf" or target_file.endswith(".pdf"):
             doc = fitz.open(target_file)
-
-            # Option compression
             deflate = True if compress else False
 
-            # Option mot de passe / encryption
-            encrypt_flags = fitz.PDF_ENCRYPT_ALGORITHM_AES_128 if secure and password else None
-
-            doc.save(
-                output_path,
-                deflate=deflate,
-                encryption=encrypt_flags,
-                user_pw=password if secure else None
-            )
+            # Appliquer les options uniquement si la sécurisation est activée avec un mot de passe
+            if secure and password:
+                doc.save(
+                    output_path,
+                    deflate=deflate,
+                    encryption=fitz.PDF_ENCRYPT_ALGORITHM_AES_128,
+                    user_pw=password
+                )
+            else:
+                doc.save(output_path, deflate=deflate)
+            
             doc.close()
         else:
-            # Traitement par défaut si autre extension
             shutil.copy(target_file, output_path)
 
         return FileResponse(
