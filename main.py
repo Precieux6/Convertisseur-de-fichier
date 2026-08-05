@@ -1,98 +1,121 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-import shutil
 import os
-import subprocess
-from pdf2docx import Converter
+import shutil
+import fitz  # PyMuPDF
+from typing import List, Optional
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
-app = FastAPI(title="API de Conversion de Documents KDP")
+app = FastAPI(title="Convertisseur & Suite PDF API")
 
-# Configuration CORS pour autoriser les requêtes depuis votre front-end Web
+# Configuration CORS pour autoriser GitHub Pages
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En production, remplacez "*" par l'URL de votre front-end
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-TEMP_DIR = "temp_files"
+TEMP_DIR = "temp_processing"
 os.makedirs(TEMP_DIR, exist_ok=True)
-
 
 @app.get("/")
 def read_root():
-    return {"message": "API de conversion active"}
+    return {"message": "L'API de conversion est fonctionnelle !"}
 
-
-@app.post("/convert/pdf-to-docx")
-async def convert_pdf_to_docx(file: UploadFile = File(...)):
-    """Conversion d'un PDF en DOCX"""
-    if not file.filename.endswith(".pdf"):
-        raise HTTPException(
-            status_code=400, detail="Le fichier doit être au format PDF."
-        )
-
-    input_path = os.path.join(TEMP_DIR, file.filename)
-    output_filename = file.filename.rsplit(".", 1)[0] + ".docx"
-    output_path = os.path.join(TEMP_DIR, output_filename)
-
-    try:
-        # Enregistrement temporaire du fichier envoyé par l'utilisateur
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        # Exécution de la conversion PDF -> DOCX
-        cv = Converter(input_path)
-        cv.convert(output_path)
-        cv.close()
-
-        # Renvoi du fichier converti au client
-        return FileResponse(
-            path=output_path,
-            filename=output_filename,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erreur de conversion : {str(e)}"
-        )
-
-    finally:
-        # Nettoyage du fichier source temporaire
-        if os.path.exists(input_path):
-            os.remove(input_path)
-
-
-@app.post("/convert/pandoc")
-async def convert_with_pandoc(
-    from_format: str, to_format: str, file: UploadFile = File(...)
+@app.post("/convert")
+async def convert_files(
+    files: List[UploadFile] = File(...),
+    output_format: str = Form("docx"),
+    secure: bool = Form(False),
+    password: Optional[str] = Form(""),
+    compress: bool = Form(False),
+    merge: bool = Form(False),
+    split: bool = Form(False),
+    page_range: Optional[str] = Form("")
 ):
-    """Conversion générique en utilisant Pandoc (ex: EPUB -> DOCX)"""
-    input_path = os.path.join(TEMP_DIR, file.filename)
-    output_filename = f"converted.{to_format}"
-    output_path = os.path.join(TEMP_DIR, output_filename)
+    if not files:
+        raise HTTPException(status_code=400, detail="Aucun fichier envoyé.")
+
+    saved_paths = []
 
     try:
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # Enregistrer les fichiers reçus localement
+        for upload in files:
+            file_path = os.path.join(TEMP_DIR, upload.filename)
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(upload.file, buffer)
+            saved_paths.append(file_path)
 
-        # Appel de l'outil CLI Pandoc installé sur la machine/serveur
-        cmd = ["pandoc", input_path, "-f", from_format, "-t", to_format, "-o", output_path]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        output_path = os.path.join(TEMP_DIR, f"resultat.{output_format}")
 
-        if result.returncode != 0:
-            raise Exception(result.stderr)
+        # 1. Traitement : Division / Extraction de pages
+        if split and page_range and len(saved_paths) == 1:
+            src_pdf = saved_paths[0]
+            doc = fitz.open(src_pdf)
+            new_doc = fitz.open()
 
-        return FileResponse(path=output_path, filename=output_filename)
+            selected_pages = []
+            for part in page_range.split(','):
+                part = part.strip()
+                if '-' in part:
+                    start, end = map(int, part.split('-'))
+                    selected_pages.extend(range(start - 1, end))
+                elif part.isdigit():
+                    selected_pages.append(int(part) - 1)
 
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erreur lors de l'exécution de Pandoc : {str(e)}"
+            for pno in selected_pages:
+                if 0 <= pno < len(doc):
+                    new_doc.insert_pdf(doc, from_page=pno, to_page=pno)
+
+            split_pdf_path = os.path.join(TEMP_DIR, "split_output.pdf")
+            new_doc.save(split_pdf_path)
+            doc.close()
+            new_doc.close()
+            saved_paths = [split_pdf_path]
+
+        # 2. Traitement : Fusion de plusieurs PDF
+        if merge and len(saved_paths) > 1:
+            merged_doc = fitz.open()
+            for pdf_path in saved_paths:
+                doc = fitz.open(pdf_path)
+                merged_doc.insert_pdf(doc)
+                doc.close()
+            merged_pdf_path = os.path.join(TEMP_DIR, "merged_output.pdf")
+            merged_doc.save(merged_pdf_path)
+            merged_doc.close()
+            saved_paths = [merged_pdf_path]
+
+        # 3. Conversion de format basique ou finalisation
+        target_file = saved_paths[0]
+
+        # Si le format final est PDF et qu'une protection par mot de passe est demandée
+        if output_format.lower() == "pdf" or target_file.endswith(".pdf"):
+            doc = fitz.open(target_file)
+
+            # Option compression
+            deflate = True if compress else False
+
+            # Option mot de passe / encryption
+            encrypt_flags = fitz.PDF_ENCRYPT_ALGORITHM_AES_128 if secure and password else None
+
+            doc.save(
+                output_path,
+                deflate=deflate,
+                encryption=encrypt_flags,
+                user_pw=password if secure else None
+            )
+            doc.close()
+        else:
+            # Traitement par défaut si autre extension
+            shutil.copy(target_file, output_path)
+
+        return FileResponse(
+            output_path,
+            filename=f"document_converti.{output_format}",
+            media_type="application/octet-stream"
         )
 
-    finally:
-        if os.path.exists(input_path):
-            os.remove(input_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
