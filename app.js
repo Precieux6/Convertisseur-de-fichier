@@ -1,5 +1,5 @@
 // URL de votre API déployée sur Render
-const API_URL = "https://fileconvert-pro.onrender.com"; // Ajustez si nécessaire
+const API_URL = "https://convertisseur-de-fichier-1.onrender.com"; // Ajustez si nécessaire
 
 // Limite maximale autorisée par fichier : 100 Mo
 const MAX_FILE_SIZE_MB = 100;
