@@ -16,7 +16,7 @@ const progressBar = document.getElementById('progress-bar');
 const progressPercent = document.getElementById('progress-percent');
 const progressStatus = document.getElementById('progress-status');
 
-// Options PDF
+// Options
 const securePdf = document.getElementById('secure-pdf');
 const passwordField = document.getElementById('password-field');
 const splitPdf = document.getElementById('split-pdf');
@@ -24,7 +24,6 @@ const splitOptions = document.getElementById('split-options');
 
 let filesArray = [];
 
-// Gestionnaires d'événements pour les options
 if (securePdf) {
     securePdf.addEventListener('change', () => {
         passwordField.classList.toggle('hidden', !securePdf.checked);
@@ -98,7 +97,7 @@ window.removeFile = function(index) {
     updateFileList();
 };
 
-// Soumission du formulaire avec progression en temps réel
+// Soumission du formulaire avec progression
 form.addEventListener('submit', (e) => {
     e.preventDefault();
 
@@ -118,22 +117,21 @@ form.addEventListener('submit', (e) => {
     formData.append('split', splitPdf ? splitPdf.checked : false);
     formData.append('page_range', document.getElementById('page-range')?.value || '');
 
-    // Changement de l'état du bouton
+    // État du bouton
     submitBtn.disabled = true;
     submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
     submitBtn.querySelector('span').textContent = 'Traitement en cours...';
 
-    // Afficher la barre de progression
+    // Affichage barre de progression
     progressContainer.classList.remove('hidden');
-    updateProgress(10, "Connexion au serveur...");
+    updateProgress(10, "Transmission des fichiers...");
 
     const xhr = new XMLHttpRequest();
     
-    // Suivi de l'envoi du fichier (% d'avancement)
     xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
             const percentComplete = Math.round((event.loaded / event.total) * 85);
-            updateProgress(percentComplete, `Envoi et traitement (${percentComplete}%)...`);
+            updateProgress(percentComplete, `Conversion et modification (${percentComplete}%)...`);
         }
     };
 
@@ -142,20 +140,19 @@ form.addEventListener('submit', (e) => {
 
     xhr.onload = () => {
         if (xhr.status === 200) {
-            updateProgress(100, "Terminé ! Téléchargement automatique...");
+            updateProgress(100, "Terminé ! Téléchargement en cours...");
 
             const blob = xhr.response;
             const format = document.getElementById('format-select').value;
-            let filename = `document_converti.${format}`;
+            let filename = `document_modifie.${format}`;
 
-            // Récupérer le nom de fichier retourné par le serveur si présent
             const contentDisposition = xhr.getResponseHeader('Content-Disposition');
             if (contentDisposition && contentDisposition.includes('filename=')) {
                 const match = contentDisposition.match(/filename="?([^";]+)"?/);
                 if (match && match[1]) filename = match[1];
             }
 
-            // Déclenchement automatique et silencieux du téléchargement (SANS POP-UP)
+            // Téléchargement automatique et silencieux
             const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = downloadUrl;
@@ -165,20 +162,28 @@ form.addEventListener('submit', (e) => {
             a.remove();
             window.URL.revokeObjectURL(downloadUrl);
 
-            // Réinitialisation douce de l'interface
             setTimeout(() => {
                 resetUI();
             }, 2000);
 
         } else {
-            updateProgress(0, "Erreur lors du traitement.");
-            alert("Une erreur est survenue lors de la conversion. Vérifiez vos paramètres.");
+            // Lecture du message d'erreur précis renvoyé par FastAPI
+            const reader = new FileReader();
+            reader.onload = function() {
+                try {
+                    const errorObj = JSON.parse(reader.result);
+                    alert(`Erreur du serveur : ${errorObj.detail}`);
+                } catch(err) {
+                    alert("Une erreur inconnue est survenue lors du traitement.");
+                }
+            };
+            reader.readAsText(xhr.response);
             resetUI();
         }
     };
 
     xhr.onerror = () => {
-        updateProgress(0, "Erreur réseau.");
+        updateProgress(0, "Erreur de connexion.");
         alert("Impossible de contacter le serveur. Vérifiez votre connexion.");
         resetUI();
     };
@@ -197,7 +202,7 @@ function updateProgress(percent, statusText) {
 function resetUI() {
     submitBtn.disabled = false;
     submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
-    submitBtn.querySelector('span').textContent = 'Lancer la Conversion';
+    submitBtn.querySelector('span').textContent = 'Lancer le Traitement';
     progressContainer.classList.add('hidden');
     updateProgress(0, '');
 }
