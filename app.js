@@ -5,7 +5,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // URL du back-end Python FastAPI (modifiable si vous hébergez l'API en ligne)
-    const API_BASE_URL = 'http://127.0.0.1:8000';
+    const API_BASE_URL = 'https://convertisseur-de-fichier.onrender.com';
 
     // DOM Elements
     const dropZone = document.getElementById('drop-zone');
