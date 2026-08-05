@@ -18,11 +18,11 @@
 </head>
 <body class="flex flex-col min-h-screen bg-[#0b0f19] text-slate-100 antialiased relative overflow-x-hidden">
 
-    <!-- Éléments décoratifs lumineux d'arrière-plan -->
+    <!-- Éléments décoratifs d'arrière-plan -->
     <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-indigo-600/20 via-purple-600/20 to-pink-500/10 blur-[120px] pointer-events-none rounded-full -z-10"></div>
     <div class="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500/10 blur-[100px] pointer-events-none rounded-full -z-10"></div>
 
-    <!-- Navigation Header Pro -->
+    <!-- Header Navigation -->
     <header class="border-b border-slate-800/80 bg-[#0b0f19]/80 backdrop-blur-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -37,7 +37,6 @@
             <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
                 <a href="#convertisseur" class="hover:text-indigo-400 transition-colors">Convertisseur</a>
                 <a href="#fonctionnalites" class="hover:text-indigo-400 transition-colors">Fonctionnalités</a>
-                <a href="#apercu" class="hover:text-indigo-400 transition-colors">Aperçu</a>
                 <a href="#faq" class="hover:text-indigo-400 transition-colors">FAQ</a>
             </nav>
 
@@ -47,27 +46,27 @@
         </div>
     </header>
 
-    <!-- Section Principale -->
+    <!-- Main Section -->
     <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-12 sm:py-16 relative z-10" id="convertisseur">
         
         <div class="text-center mb-8 space-y-3">
             <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
-                <i class="fa-solid fa-sparkles text-indigo-400"></i> Traitement instantané & Sécurisé
+                <i class="fa-solid fa-sparkles text-indigo-400"></i> Traitement Multi-Formats Universal
             </span>
             <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-                Espace de Conversion
+                Studio de Conversion & Modification
             </h1>
             <p class="text-slate-400 text-sm sm:text-base max-w-lg mx-auto">
-                Sélectionnez vos fichiers et configurez vos options de sortie en quelques secondes.
+                Convertissez, divisez ou fusionnez vos fichiers PDF, Word, EPUB, MOBI et Kindle en toute simplicité.
             </p>
         </div>
 
-        <!-- Carte Principale -->
+        <!-- Form Box -->
         <div class="bg-white rounded-3xl p-6 sm:p-10 shadow-2xl shadow-indigo-950/50 border border-slate-100 text-slate-800 transition-all">
             
             <form id="converter-form" class="space-y-6">
                 
-                <!-- Zone de Dépôt -->
+                <!-- Drop Zone -->
                 <div id="drop-zone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50/80 transition-all duration-300 rounded-2xl p-8 sm:p-12 text-center cursor-pointer relative group">
                     <input type="file" id="file-upload" name="files" multiple class="hidden" />
                     
@@ -80,13 +79,13 @@
                                 Glissez-déposez vos fichiers ici, ou <span class="text-indigo-600 underline decoration-indigo-300 underline-offset-4">parcourez</span>
                             </p>
                             <p class="text-xs sm:text-sm text-slate-400 mt-1.5 font-medium">
-                                Formats supportés : PDF, WORD (.docx), EPUB, MOBI, TXT (Max: 50MB)
+                                Tous formats supportés : PDF, WORD (.docx), EPUB, MOBI, AZW3/Kindle, TXT (Max: 50MB)
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Liste des fichiers -->
+                <!-- File List -->
                 <div id="file-list-container" class="hidden bg-slate-50 p-4 rounded-2xl border border-slate-200">
                     <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
                         <span>Fichiers prêts à être traités</span>
@@ -98,7 +97,7 @@
                 <!-- Configuration et Options -->
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
                     
-                    <!-- Format de Destination -->
+                    <!-- Destination Format -->
                     <div class="md:col-span-5 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/80 flex flex-col justify-between">
                         <div>
                             <label for="format-select" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-2">
@@ -108,21 +107,21 @@
                                 <option value="pdf">Document PDF (.pdf)</option>
                                 <option value="docx">Word (.docx)</option>
                                 <option value="epub">Livre EPUB (.epub)</option>
+                                <option value="mobi">Livre MOBI (.mobi)</option>
+                                <option value="azw3">Kindle (.azw3)</option>
                                 <option value="txt">Texte Brut (.txt)</option>
-                                <option value="jpg">Image JPG (.jpg)</option>
-                                <option value="png">Image PNG (.png)</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- Options Spécifiques PDF -->
+                    <!-- Universal Options Box -->
                     <div id="pdf-options-box" class="md:col-span-7 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/80 space-y-3">
-                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Options spécifiques PDF</h2>
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Options Avancées (Tous Formats)</h2>
                         
                         <label class="flex items-center space-x-3 cursor-pointer group">
                             <input type="checkbox" id="secure-pdf" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
                             <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
-                                <i class="fa-solid fa-lock text-slate-400 group-hover:text-indigo-500"></i> Sécuriser le PDF (Mot de passe)
+                                <i class="fa-solid fa-lock text-slate-400 group-hover:text-indigo-500"></i> Sécuriser le fichier (Mot de passe)
                             </span>
                         </label>
                         <div id="password-field" class="hidden pl-7 pt-1">
@@ -132,7 +131,7 @@
                         <label class="flex items-center space-x-3 cursor-pointer group">
                             <input type="checkbox" id="compress-pdf" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
                             <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
-                                <i class="fa-solid fa-file-contract text-slate-400 group-hover:text-indigo-500"></i> Compresser la taille du fichier
+                                <i class="fa-solid fa-file-contract text-slate-400 group-hover:text-indigo-500"></i> Compresser le fichier de sortie
                             </span>
                         </label>
 
@@ -150,17 +149,17 @@
                             </span>
                         </label>
                         <div id="split-options" class="hidden pl-7 pt-1">
-                            <input type="text" id="page-range" placeholder="Ex: 1-3, 5, 8-10" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <input type="text" id="page-range" placeholder="Ex: 1-4, 6, 8-10" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <p class="text-[11px] text-slate-400 mt-1 font-medium">Indiquez les pages ou intervalles séparés par des virgules.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Composant de la Barre de Progression (Nouveau) -->
+                <!-- Progress Bar Container -->
                 <div id="progress-container" class="hidden space-y-2 pt-2">
                     <div class="flex justify-between items-center text-xs font-semibold text-slate-600">
                         <span id="progress-status" class="flex items-center gap-2">
-                            <i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> Envoi du fichier...
+                            <i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> Traitement en cours...
                         </span>
                         <span id="progress-percent" class="text-indigo-600 font-bold text-sm">0%</span>
                     </div>
@@ -169,10 +168,10 @@
                     </div>
                 </div>
 
-                <!-- Bouton d'action Principal -->
+                <!-- Submit Button -->
                 <button type="submit" id="submit-btn" class="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-base rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transition-all duration-300 flex items-center justify-center gap-3 active:scale-[0.99]">
                     <i class="fa-solid fa-gear text-lg"></i>
-                    <span>Lancer la Conversion</span>
+                    <span>Lancer le Traitement</span>
                 </button>
             </form>
         </div>
