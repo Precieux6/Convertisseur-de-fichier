@@ -3,11 +3,14 @@ import shutil
 import zipfile
 import uuid
 import re
+import subprocess
 import fitz  # PyMuPDF
 from typing import List, Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image
+import img2pdf
 
 app = FastAPI(title="FileConvert Pro API", version="2.1.0")
 
@@ -26,6 +29,24 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 # Limite de taille par fichier : 100 Mo
 MAX_FILE_SIZE_MB = 100
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
+
+def convert_docx_to_pdf_libreoffice(docx_path: str, output_dir: str) -> str:
+    """
+    Convertit un fichier DOCX en PDF via LibreOffice Headless.
+    Conserve fidèlement la mise en page, les tableaux complexes et les polices.
+    """
+    cmd = [
+        "libreoffice",
+        "--headless",
+        "--convert-to", "pdf",
+        docx_path,
+        "--outdir", output_dir
+    ]
+    subprocess.run(cmd, check=True)
+    
+    base_name = os.path.splitext(os.path.basename(docx_path))[0]
+    return os.path.join(output_dir, f"{base_name}.pdf")
 
 
 def cleanup_directory(directory_path: str):
@@ -61,199 +82,136 @@ def parse_page_range(page_range_str: str, max_pages: int) -> List[int]:
     return sorted(list(pages))
 
 
-@app.get("/")
-def read_root():
-    return {"message": "API FileConvert Pro est en ligne."}
+def convert_images_to_pdf(image_paths: List[str], output_pdf_path: str):
+    """Convertit une liste d'images (JPG, PNG, WEBP, etc.) en un seul PDF."""
+    converted_images = []
+    for img_path in image_paths:
+        ext = os.path.splitext(img_path)[1].lower()
+        if ext in [".heic", ".webp"]:
+            img = Image.open(img_path)
+            jpg_path = img_path + ".jpg"
+            img.convert("RGB").save(jpg_path, "JPEG")
+            converted_images.append(jpg_path)
+        else:
+            converted_images.append(img_path)
+
+    with open(output_pdf_path, "wb") as f:
+        f.write(img2pdf.convert(converted_images))
 
 
 @app.post("/convert")
-async def convert_files(
-    files: List[UploadFile] = File(...),
-    output_format: str = Form("pdf"),
-    secure: bool = Form(False),
-    password: Optional[str] = Form(""),
-    compress: bool = Form(False),
-    merge: bool = Form(False),
-    split: bool = Form(False),
-    page_range: Optional[str] = Form("")
-):
+async def convert_files(files: List[UploadFile] = File(...)):
     if not files:
-        raise HTTPException(status_code=400, detail="Aucun fichier n'a été téléversé.")
+        raise HTTPException(status_code=400, detail="Aucun fichier fourni")
 
-    # -------------------------------------------------------------
-    # VÉRIFICATION STRICTE DE LA TAILLE DE CHAQUE FICHIER (100 Mo MAX)
-    # -------------------------------------------------------------
-    for upload in files:
-        upload.file.seek(0, 2)
-        file_size = upload.file.tell()
-        upload.file.seek(0)  # Remettre le curseur au début
-
+    # 1. Contrôle strict de la taille des fichiers (Max 100 Mo par fichier)
+    for file in files:
+        file.file.seek(0, 2)
+        file_size = file.file.tell()
+        file.file.seek(0)
         if file_size > MAX_FILE_SIZE_BYTES:
-            size_in_mb = round(file_size / (1024 * 1024), 2)
             raise HTTPException(
                 status_code=400,
-                detail=f"Le fichier '{upload.filename}' est trop lourd ({size_in_mb} Mo). "
-                       f"La limite maximale autorisée est de {MAX_FILE_SIZE_MB} Mo par fichier "
-                       f"pour garantir la stabilité du serveur."
+                detail=f"Le fichier '{file.filename}' dépasse la limite autorisée de {MAX_FILE_SIZE_MB} Mo."
             )
 
     job_id = str(uuid.uuid4())
     job_dir = os.path.join(TEMP_DIR, job_id)
     os.makedirs(job_dir, exist_ok=True)
 
-    saved_paths = []
-    processed_paths = []
-
     try:
-        # Enregistrement local des fichiers téléversés
-        for upload in files:
-            file_path = os.path.join(job_dir, upload.filename)
+        saved_paths = []
+        for file in files:
+            file_path = os.path.join(job_dir, file.filename)
             with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(upload.file, buffer)
+                shutil.copyfileobj(file.file, buffer)
             saved_paths.append(file_path)
 
-        out_fmt = output_format.lower().strip()
+        processed_paths = []
+        image_batch = []
 
-        # CAS 1 : Fusion de plusieurs fichiers en un seul PDF
-        if merge and len(saved_paths) > 1 and out_fmt == "pdf":
-            merged_doc = fitz.open()
-            for path in saved_paths:
-                ext = os.path.splitext(path)[1].lower()
-                if ext == ".pdf":
-                    doc = fitz.open(path)
-                    merged_doc.insert_pdf(doc)
-                    doc.close()
-                else:
-                    try:
-                        img_doc = fitz.open(path)
-                        pdf_bytes = img_doc.convert_to_pdf()
-                        pdf_mem = fitz.open("pdf", pdf_bytes)
-                        merged_doc.insert_pdf(pdf_mem)
-                        img_doc.close()
-                        pdf_mem.close()
-                    except Exception as e:
-                        print(f"Erreur d'intégration de {path} dans la fusion: {e}")
+        for path in saved_paths:
+            ext = os.path.splitext(path)[1].lower()
 
-            output_merged_path = os.path.join(job_dir, "document_fusionne.pdf")
-            
-            if secure and password:
-                perm = int(fitz.PDF_PERM_ACCESSIBILITY)
-                encrypt_meth = fitz.PDF_ENCRYPT_AES_256
-                merged_doc.save(
-                    output_merged_path,
-                    user_pw=password,
-                    owner_pw=password,
-                    permissions=perm,
-                    encryption=encrypt_meth
-                )
+            # 📄 Conversion Word (DOCX / DOC) via LibreOffice
+            if ext in [".docx", ".doc"]:
+                out_pdf_path = convert_docx_to_pdf_libreoffice(path, job_dir)
+                processed_paths.append(out_pdf_path)
+
+            # 🖼️ Conversion Images
+            elif ext in [".jpg", ".jpeg", ".png", ".webp", ".heic"]:
+                image_batch.append(path)
+
             else:
-                merged_doc.save(output_merged_path)
+                processed_paths.append(path)
 
-            merged_doc.close()
-            processed_paths.append(output_merged_path)
+        # Regroupement des images en un seul PDF s'il y en a
+        if image_batch:
+            merged_pdf_path = os.path.join(job_dir, "converted_images.pdf")
+            convert_images_to_pdf(image_batch, merged_pdf_path)
+            processed_paths.append(merged_pdf_path)
 
-        # CAS 2 : Traitement individuel de chaque fichier
-        else:
-            for path in saved_paths:
-                filename = os.path.basename(path)
-                name_without_ext, ext = os.path.splitext(filename)
-                ext = ext.lower()
-
-                if ext == ".pdf":
-                    doc = fitz.open(path)
-
-                    if split and page_range:
-                        selected_pages = parse_page_range(page_range, len(doc))
-                        if selected_pages:
-                            new_doc = fitz.open()
-                            for p_idx in selected_pages:
-                                new_doc.insert_pdf(doc, from_page=p_idx, to_page=p_idx)
-                            
-                            split_path = os.path.join(job_dir, f"{name_without_ext}_extrait.pdf")
-                            if secure and password:
-                                new_doc.save(split_path, user_pw=password, owner_pw=password, encryption=fitz.PDF_ENCRYPT_AES_256)
-                            else:
-                                new_doc.save(split_path)
-                            new_doc.close()
-                            processed_paths.append(split_path)
-                            doc.close()
-                            continue
-
-                    if out_fmt in ["jpg", "png"]:
-                        for i, page in enumerate(doc):
-                            pix = page.get_pixmap(dpi=150)
-                            img_name = f"{name_without_ext}_page_{i+1}.{out_fmt}"
-                            img_path = os.path.join(job_dir, img_name)
-                            pix.save(img_path)
-                            processed_paths.append(img_path)
-                        doc.close()
-                    
-                    elif out_fmt == "txt":
-                        txt_path = os.path.join(job_dir, f"{name_without_ext}.txt")
-                        full_text = ""
-                        for page in doc:
-                            full_text += page.get_text() + "\n--- PAGE BREAK ---\n"
-                        with open(txt_path, "w", encoding="utf-8") as f:
-                            f.write(full_text)
-                        processed_paths.append(txt_path)
-                        doc.close()
-
-                    else:
-                        out_pdf_path = os.path.join(job_dir, f"{name_without_ext}_converti.pdf")
-                        if secure and password:
-                            doc.save(out_pdf_path, user_pw=password, owner_pw=password, encryption=fitz.PDF_ENCRYPT_AES_256)
-                        else:
-                            doc.save(out_pdf_path)
-                        doc.close()
-                        processed_paths.append(out_pdf_path)
-
-                elif ext in [".jpg", ".jpeg", ".png", ".bmp", ".webp"]:
-                    if out_fmt == "pdf":
-                        out_pdf_path = os.path.join(job_dir, f"{name_without_ext}.pdf")
-                        img_doc = fitz.open(path)
-                        pdf_bytes = img_doc.convert_to_pdf()
-                        pdf_mem = fitz.open("pdf", pdf_bytes)
-                        if secure and password:
-                            pdf_mem.save(out_pdf_path, user_pw=password, owner_pw=password, encryption=fitz.PDF_ENCRYPT_AES_256)
-                        else:
-                            pdf_mem.save(out_pdf_path)
-                        img_doc.close()
-                        pdf_mem.close()
-                        processed_paths.append(out_pdf_path)
-                    else:
-                        processed_paths.append(path)
-
-                else:
-                    processed_paths.append(path)
-
-        if not processed_paths:
-            raise HTTPException(status_code=500, detail="Aucun fichier n'a pu être généré.")
-
+        # Envoi d'un seul fichier directement
         if len(processed_paths) == 1:
-            final_file = processed_paths[0]
-            download_name = os.path.basename(final_file)
             return FileResponse(
-                path=final_file,
-                filename=download_name,
-                media_type="application/octet-stream"
-            )
-        else:
-            zip_filename = f"fichiers_convertis_{job_id[:8]}.zip"
-            zip_path = os.path.join(job_dir, zip_filename)
-            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for file_p in processed_paths:
-                    zipf.write(file_p, arcname=os.path.basename(file_p))
-
-            return FileResponse(
-                path=zip_path,
-                filename=zip_filename,
-                media_type="application/zip"
+                processed_paths[0],
+                media_type="application/pdf",
+                filename=os.path.basename(processed_paths[0])
             )
 
-    except HTTPException:
-        cleanup_directory(job_dir)
-        raise
+        # Envoi sous forme d'archive ZIP si plusieurs fichiers générés
+        zip_base_path = os.path.join(TEMP_DIR, f"converted_{job_id}")
+        zip_file_path = shutil.make_archive(zip_base_path, 'zip', job_dir)
+
+        return FileResponse(
+            zip_file_path,
+            media_type="application/zip",
+            filename="fichiers_convertis.zip"
+        )
 
     except Exception as e:
         cleanup_directory(job_dir)
-        raise HTTPException(status_code=500, detail=f"Erreur lors du traitement : {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur de traitement : {str(e)}")
+
+
+@app.post("/split-pdf")
+async def split_pdf(file: UploadFile = File(...), pages: str = Form(...)):
+    """Découpe un fichier PDF selon la plage de pages sélectionnée."""
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    if file_size > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(status_code=400, detail=f"Fichier trop volumineux (> {MAX_FILE_SIZE_MB} Mo)")
+
+    job_id = str(uuid.uuid4())
+    job_dir = os.path.join(TEMP_DIR, job_id)
+    os.makedirs(job_dir, exist_ok=True)
+
+    try:
+        input_pdf_path = os.path.join(job_dir, file.filename)
+        with open(input_pdf_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        doc = fitz.open(input_pdf_path)
+        page_indices = parse_page_range(pages, len(doc))
+
+        if not page_indices:
+            raise HTTPException(status_code=400, detail="Aucune page valide n'a été sélectionnée.")
+
+        new_doc = fitz.open()
+        for idx in page_indices:
+            new_doc.insert_pdf(doc, from_page=idx, to_page=idx)
+
+        output_pdf_path = os.path.join(job_dir, f"decoupe_{file.filename}")
+        new_doc.save(output_pdf_path)
+        new_doc.close()
+        doc.close()
+
+        return FileResponse(
+            output_pdf_path,
+            media_type="application/pdf",
+            filename=f"decoupe_{file.filename}"
+        )
+    except Exception as e:
+        cleanup_directory(job_dir)
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la découpe : {str(e)}")
