@@ -1,129 +1,189 @@
 <!DOCTYPE html>
-<html lang="fr" class="h-full bg-slate-50">
+<html lang="fr" class="h-full bg-slate-900 selection:bg-indigo-500 selection:text-white">
 <head>
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Convertisseur de Fichiers & Suite PDF | KDP, EPUB, PDF</title>
+    <title>FileConvert Pro — Outil de conversion & Suite PDF moderne</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
+    <!-- FontAwesome Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-    <!-- Google Fonts Inter & Fira Code -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-    <!-- Styles sur-mesure -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="style.css"/>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
 </head>
-<body class="flex flex-col min-h-full font-sans text-slate-800 antialiased">
+<body class="flex flex-col min-h-screen bg-[#0b0f19] text-slate-100 antialiased relative overflow-x-hidden">
 
-    <!-- Toast / Notification Bar -->
-    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2"></div>
+    <!-- Éléments décoratifs lumineux d'arrière-plan (Glow effects) -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-indigo-600/20 via-purple-600/20 to-pink-500/10 blur-[120px] pointer-events-none rounded-full -z-10"></div>
+    <div class="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500/10 blur-[100px] pointer-events-none rounded-full -z-10"></div>
 
-    <!-- Container Principal -->
-    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-                Convertisseur de Fichiers & Suite PDF
+    <!-- Navigation Header Pro -->
+    <header class="border-b border-slate-800/80 bg-[#0b0f19]/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 text-white font-bold text-xl">
+                    <i class="fa-solid fa-file-export"></i>
+                </div>
+                <span class="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+                    FileConvert <span class="text-indigo-400">Pro</span>
+                </span>
+            </div>
+
+            <!-- Menu de navigation -->
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+                <a href="#convertisseur" class="hover:text-indigo-400 transition-colors">Convertisseur</a>
+                <a href="#fonctionnalites" class="hover:text-indigo-400 transition-colors">Fonctionnalités</a>
+                <a href="#apercu" class="hover:text-indigo-400 transition-colors">Aperçu</a>
+                <a href="#faq" class="hover:text-indigo-400 transition-colors">FAQ</a>
+            </nav>
+
+            <!-- Bouton d'action Rapide -->
+            <a href="#convertisseur" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-105">
+                <i class="fa-solid fa-bolt text-yellow-300"></i> Lancer l'outil
+            </a>
+        </div>
+    </header>
+
+    <!-- Section Principale -->
+    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-12 sm:py-16 relative z-10" id="convertisseur">
+        
+        <!-- En-tête de section -->
+        <div class="text-center mb-8 space-y-3">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
+                <i class="fa-solid fa-sparkles text-indigo-400"></i> Traitement instantané & Sécurisé
+            </span>
+            <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+                Espace de Conversion
             </h1>
-            <p class="text-slate-600 mt-2 text-sm sm:text-base">
-                Transformez vos documents et images en quelques clics.
+            <p class="text-slate-400 text-sm sm:text-base max-w-lg mx-auto">
+                Sélectionnez vos fichiers et configurez vos options de sortie en quelques secondes.
             </p>
-        </header>
+        </div>
 
-        <form id="converter-form" class="space-y-6">
-            <!-- Zone de Dépôt / Sélecteur -->
-            <div id="drop-zone" class="border-2 border-dashed border-slate-300 hover:border-indigo-500 transition-colors duration-200 rounded-2xl p-8 bg-white text-center cursor-pointer relative shadow-sm">
-                <input type="file" id="file-upload" name="files" multiple class="hidden" />
-                <div class="space-y-4">
-                    <div class="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto text-indigo-600">
-                        <i class="fas font-cloud-arrow-up text-2xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-base font-semibold text-slate-700">
-                            Glissez-déposez vos fichiers ici, ou <span class="text-indigo-600 underline">parcourez</span>
-                        </p>
-                        <p class="text-xs text-slate-400 mt-1">
-                            Tous formats acceptés (PDF, DOCX, EPUB, images, etc.)
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Liste des fichiers sélectionnés -->
-            <div id="file-list-container" class="hidden bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <h2 class="text-sm font-semibold text-slate-700 mb-2 flex items-center justify-between">
-                    <span>Fichiers sélectionnés</span>
-                    <span id="file-counter" class="text-xs bg-indigo-100 text-indigo-700 font-medium px-2 py-0.5 rounded-full">0</span>
-                </h2>
-                <ul id="file-list" class="divide-y divide-slate-100 max-h-40 overflow-y-auto"></ul>
-            </div>
-
-            <!-- Options de Conversion -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Choix du Format -->
-                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <label for="format-select" class="block text-sm font-semibold text-slate-700 mb-2">
-                        Format de sortie souhaité
-                    </label>
-                    <select id="format-select" name="output_format" class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50">
-                        <option value="docx">Word (.docx)</option>
-                        <option value="pdf">PDF (.pdf)</option>
-                        <option value="epub">EPUB (.epub)</option>
-                        <option value="txt">Texte (.txt)</option>
-                        <option value="jpg">Image (.jpg)</option>
-                        <option value="png">Image (.png)</option>
-                    </select>
-                </div>
-
-                <!-- Options spécifiques PDF -->
-                <div id="pdf-options-box" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Options Spécifiques PDF</h2>
+        <!-- Carte Principale (Design Blanc/Épuré en relief) -->
+        <div class="bg-white rounded-3xl p-6 sm:p-10 shadow-2xl shadow-indigo-950/50 border border-slate-100 text-slate-800 transition-all">
+            
+            <form id="converter-form" class="space-y-6">
+                
+                <!-- Zone de Dépôt Modernisée -->
+                <div id="drop-zone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50/80 transition-all duration-300 rounded-2xl p-8 sm:p-12 text-center cursor-pointer relative group">
+                    <input type="file" id="file-upload" name="files" multiple class="hidden" />
                     
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="secure-pdf" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
-                        <span class="text-sm font-medium text-slate-700 flex items-center gap-2">
-                            <i class="fas font-lock text-slate-400"></i> Sécuriser le PDF (Mot de passe)
-                        </span>
-                    </label>
-                    <div id="password-field" class="hidden pl-7">
-                        <input type="password" id="pdf-password" placeholder="Mot de passe" class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="compress-pdf" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
-                        <span class="text-sm font-medium text-slate-700 flex items-center gap-2">
-                            <i class="fas font-file-compress text-slate-400"></i> Compresser la taille du fichier
-                        </span>
-                    </label>
-
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="merge-pdf" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
-                        <span class="text-sm font-medium text-slate-700 flex items-center gap-2">
-                            <i class="fas font-object-group text-slate-400"></i> Fusionner les fichiers importés
-                        </span>
-                    </label>
-
-                    <!-- NOUVELLE OPTION : Diviser le PDF -->
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="split-pdf" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
-                        <span class="text-sm font-medium text-slate-700 flex items-center gap-2">
-                            <i class="fas font-scissors text-slate-400"></i> Diviser / Extraire des pages
-                        </span>
-                    </label>
-                    <div id="split-options" class="hidden pl-7">
-                        <input type="text" id="page-range" placeholder="Ex: 1-3, 5, 8-10" class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <p class="text-[11px] text-slate-400 mt-1">Indiquez les pages ou intervalles à extraire.</p>
+                    <div class="space-y-4">
+                        <div class="w-16 h-16 bg-indigo-600/10 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 rounded-2xl flex items-center justify-center mx-auto text-indigo-600 shadow-sm">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl group-hover:scale-110 transition-transform"></i>
+                        </div>
+                        <div>
+                            <p class="text-base sm:text-lg font-bold text-slate-800">
+                                Glissez-déposez vos fichiers ici, ou <span class="text-indigo-600 underline decoration-indigo-300 underline-offset-4">parcourez</span>
+                            </p>
+                            <p class="text-xs sm:text-sm text-slate-400 mt-1.5 font-medium">
+                                Formats supportés : PDF, WORD (.docx), EPUB, MOBI, TXT (Max: 50MB)
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Bouton d'action -->
-            <button type="submit" id="submit-btn" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2">
-                <i class="fas font-gear"></i> Lancer la Conversion
-            </button>
-        </form>
+                <!-- Liste des fichiers sélectionnés -->
+                <div id="file-list-container" class="hidden bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
+                        <span>Fichiers prêts à être traités</span>
+                        <span id="file-counter" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">0</span>
+                    </h2>
+                    <ul id="file-list" class="divide-y divide-slate-200/60 max-h-48 overflow-y-auto pr-1"></ul>
+                </div>
+
+                <!-- Configuration et Options -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+                    
+                    <!-- Format de Destination -->
+                    <div class="md:col-span-5 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/80 flex flex-col justify-between">
+                        <div>
+                            <label for="format-select" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-arrows-rotate text-indigo-500"></i> Format de destination
+                            </label>
+                            <select id="format-select" name="output_format" class="w-full text-sm font-semibold p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white text-slate-800 cursor-pointer shadow-sm">
+                                <option value="pdf">Document PDF (.pdf)</option>
+                                <option value="docx">Word (.docx)</option>
+                                <option value="epub">Livre EPUB (.epub)</option>
+                                <option value="txt">Texte Brut (.txt)</option>
+                                <option value="jpg">Image JPG (.jpg)</option>
+                                <option value="png">Image PNG (.png)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Options Spécifiques PDF -->
+                    <div id="pdf-options-box" class="md:col-span-7 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/80 space-y-3">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Options spécifiques PDF</h2>
+                        
+                        <!-- Option Sécuriser -->
+                        <label class="flex items-center space-x-3 cursor-pointer group">
+                            <input type="checkbox" id="secure-pdf" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                            <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-lock text-slate-400 group-hover:text-indigo-500"></i> Sécuriser le PDF (Mot de passe)
+                            </span>
+                        </label>
+                        <div id="password-field" class="hidden pl-7 pt-1">
+                            <input type="password" id="pdf-password" placeholder="Saisir le mot de passe" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+
+                        <!-- Option Compresser -->
+                        <label class="flex items-center space-x-3 cursor-pointer group">
+                            <input type="checkbox" id="compress-pdf" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                            <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-file-contract text-slate-400 group-hover:text-indigo-500"></i> Compresser la taille du fichier
+                            </span>
+                        </label>
+
+                        <!-- Option Fusionner -->
+                        <label class="flex items-center space-x-3 cursor-pointer group">
+                            <input type="checkbox" id="merge-pdf" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                            <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-object-group text-slate-400 group-hover:text-indigo-500"></i> Fusionner les fichiers importés
+                            </span>
+                        </label>
+
+                        <!-- Option Diviser / Extraire -->
+                        <label class="flex items-center space-x-3 cursor-pointer group">
+                            <input type="checkbox" id="split-pdf" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                            <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-scissors text-slate-400 group-hover:text-indigo-500"></i> Diviser / Extraire des pages
+                            </span>
+                        </label>
+                        <div id="split-options" class="hidden pl-7 pt-1">
+                            <input type="text" id="page-range" placeholder="Ex: 1-3, 5, 8-10" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <p class="text-[11px] text-slate-400 mt-1 font-medium">Indiquez les pages ou intervalles séparés par des virgules.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bouton d'action Principal (Stylisé) -->
+                <button type="submit" id="submit-btn" class="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-base rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transition-all duration-300 flex items-center justify-center gap-3 active:scale-[0.99]">
+                    <i class="fa-solid fa-gear text-lg"></i>
+                    <span>Lancer la Conversion</span>
+                </button>
+            </form>
+        </div>
     </main>
+
+    <!-- Footer Pro -->
+    <footer class="border-t border-slate-800/80 bg-[#070a11] py-8 mt-auto text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>© 2026 FileConvert Pro. Tous droits réservés.</p>
+            <div class="flex gap-6 text-slate-400 font-medium">
+                <a href="#" class="hover:text-indigo-400 transition-colors">Confidentialité</a>
+                <a href="#" class="hover:text-indigo-400 transition-colors">Conditions d'utilisation</a>
+            </div>
+        </div>
+    </footer>
 
     <script src="app.js"></script>
 </body>
