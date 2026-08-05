@@ -1,10 +1,9 @@
 /**
- * FileConvert Pro - Application Logic
- * Modern Client-Side & Server-Side File Converter & PDF Handler
+ * FileConvert Pro - Logic & API Handler
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // URL du back-end Python FastAPI (modifiable si vous hébergez l'API en ligne)
+    // URL de l'API en ligne hébergée sur Render
     const API_BASE_URL = 'https://convertisseur-de-fichier.onrender.com';
 
     // DOM Elements
@@ -12,356 +11,165 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('file-upload');
     const fileCounter = document.getElementById('file-counter');
     const fileListContainer = document.getElementById('file-list-container');
+    const fileList = document.getElementById('file-list');
     const formatSelect = document.getElementById('format-select');
-    const pdfOptionsBox = document.getElementById('pdf-options-box');
+    
+    // Checkboxes PDF
     const secureCheckbox = document.getElementById('secure-pdf');
     const passwordField = document.getElementById('password-field');
+    const pdfPasswordInput = document.getElementById('pdf-password');
+    const compressCheckbox = document.getElementById('compress-pdf');
+    const mergeCheckbox = document.getElementById('merge-pdf');
+    
+    // Nouveaux éléments pour la division
+    const splitCheckbox = document.getElementById('split-pdf');
+    const splitOptions = document.getElementById('split-options');
+    const pageRangeInput = document.getElementById('page-range');
+
     const converterForm = document.getElementById('converter-form');
-    const progressContainer = document.getElementById('progress-container');
-    const progressBar = document.getElementById('progress-bar');
-    const progressPercent = document.getElementById('progress-percent');
-    const progressStatus = document.getElementById('progress-status');
-    const convertBtn = document.getElementById('convert-btn');
-    const btnText = document.getElementById('btn-text');
-    const toastContainer = document.getElementById('toast-container');
+    const submitBtn = document.getElementById('submit-btn');
 
-    // Preview DOM Elements
-    const previewPlaceholder = document.getElementById('preview-placeholder');
-    const previewContent = document.getElementById('preview-content');
-    const previewFilename = document.getElementById('preview-filename');
-    const previewFilesize = document.getElementById('preview-filesize');
-    const previewFiletype = document.getElementById('preview-filetype');
-
-    // Application State
     let selectedFiles = [];
 
-    // Initialize Event Listeners
-    initEvents();
+    // Drag & Drop
+    dropZone.addEventListener('click', () => fileInput.click());
 
-    function initEvents() {
-        // Dropzone Click
-        dropZone.addEventListener('click', () => fileInput.click());
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
 
-        // File Selection via Input
-        fileInput.addEventListener('change', (e) => {
-            handleFiles(Array.from(e.target.files));
-        });
-
-        // Drag & Drop Handling
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                dropZone.classList.add('dragover');
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                dropZone.classList.remove('dragover');
-            }, false);
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const files = Array.from(dt.files);
-            handleFiles(files);
-        });
-
-        // Dynamic Options visibility based on Format
-        formatSelect.addEventListener('change', (e) => {
-            const format = e.target.value;
-            if (format === 'pdf') {
-                pdfOptionsBox.classList.remove('opacity-40', 'pointer-events-none');
-            } else {
-                pdfOptionsBox.classList.add('opacity-40', 'pointer-events-none');
-            }
-        });
-
-        // Toggle Password Input
-        secureCheckbox.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                passwordField.classList.remove('hidden');
-            } else {
-                passwordField.classList.add('hidden');
-            }
-        });
-
-        // Form Submission
-        converterForm.addEventListener('submit', handleFormSubmit);
-    }
-
-    /**
-     * Process selected files
-     */
-    function handleFiles(files) {
-        if (files.length === 0) return;
-
-        // Filter or add files
-        files.forEach(file => {
-            // Avoid duplicate by name & size
-            if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
-                selectedFiles.push(file);
-            }
-        });
-
-        updateUI();
-        showToast(`${files.length} fichier(s) ajouté(s)`, 'info');
-    }
-
-    /**
-     * Remove file from selection
-     */
-    window.removeFile = function(index) {
-        selectedFiles.splice(index, 1);
-        updateUI();
-        showToast('Fichier retiré', 'warning');
-    };
-
-    /**
-     * Update UI states (File list, counter, preview)
-     */
-    function updateUI() {
-        // Counter
-        if (selectedFiles.length > 0) {
-            fileCounter.textContent = `${selectedFiles.length} fichier(s) sélectionné(s)`;
-            fileCounter.classList.remove('hidden');
-            fileListContainer.classList.remove('hidden');
-        } else {
-            fileCounter.classList.add('hidden');
-            fileListContainer.classList.add('hidden');
-        }
-
-        // Render File Items
-        fileListContainer.innerHTML = '';
-        selectedFiles.forEach((file, index) => {
-            const fileItem = document.createElement('div');
-            fileItem.className = 'flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-sm animate-fadeIn';
-            fileItem.innerHTML = `
-                <div class="flex items-center space-x-3 truncate">
-                    <i class="${getFileIcon(file.name)} text-indigo-500 text-lg"></i>
-                    <span class="font-medium text-slate-700 truncate">${file.name}</span>
-                    <span class="text-xs text-slate-400">(${formatBytes(file.size)})</span>
-                </div>
-                <button type="button" onclick="removeFile(${index})" class="text-slate-400 hover:text-rose-500 transition-colors p-1">
-                    <i class="fa-solid fa-xmark text-base"></i>
-                </button>
-            `;
-            fileListContainer.appendChild(fileItem);
-        });
-
-        // Update Dynamic Preview
-        if (selectedFiles.length > 0) {
-            const firstFile = selectedFiles[0];
-            previewPlaceholder.classList.add('hidden');
-            previewContent.classList.remove('hidden');
-
-            previewFilename.textContent = firstFile.name;
-            previewFilesize.textContent = formatBytes(firstFile.size);
-            previewFiletype.textContent = firstFile.type || 'application/octet-stream';
-        } else {
-            previewPlaceholder.classList.remove('hidden');
-            previewContent.classList.add('hidden');
-        }
-    }
-
-    /**
-     * Form Submission Handler
-     */
-    async function handleFormSubmit(e) {
+    function preventDefaults(e) {
         e.preventDefault();
+        e.stopPropagation();
+    }
 
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.classList.add('border-indigo-500', 'bg-indigo-50/50');
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/50');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        handleFiles(dt.files);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+    });
+
+    function handleFiles(files) {
+        const newFiles = Array.from(files);
+        selectedFiles = [...selectedFiles, ...newFiles];
+        updateFileList();
+    }
+
+    function updateFileList() {
+        fileList.innerHTML = '';
         if (selectedFiles.length === 0) {
-            showToast('Veuillez sélectionner au moins un fichier à convertir.', 'error');
+            fileListContainer.classList.add('hidden');
             return;
         }
 
-        const targetFormat = formatSelect.value;
-        const mergeElement = document.getElementById('merge-pdf');
-        const isMergeChecked = mergeElement ? mergeElement.checked : false;
+        fileListContainer.classList.remove('hidden');
+        fileCounter.textContent = selectedFiles.length;
 
-        setLoadingState(true);
-
-        try {
-            // Option 1 : Fusion locale de PDF si l'option est activée
-            if (targetFormat === 'pdf' && isMergeChecked && selectedFiles.length > 1) {
-                await processPdfMerge();
-            } else {
-                // Option 2 : Appel du Back-end Python pour la conversion
-                for (let i = 0; i < selectedFiles.length; i++) {
-                    const file = selectedFiles[i];
-                    updateProgress(Math.round(((i + 1) / selectedFiles.length) * 80), `Envoi et conversion de ${file.name}...`);
-                    await sendFileToBackend(file, targetFormat);
-                }
-                updateProgress(100, 'Conversion effectuée avec succès !');
-                showToast('Conversion réussie ! Le téléchargement a démarré.', 'success');
-            }
-        } catch (err) {
-            console.error(err);
-            showToast(err.message || "Une erreur s'est produite lors de la conversion.", 'error');
-        } finally {
-            setLoadingState(false);
-        }
-    }
-
-    /**
-     * Requéter l'API Python FastAPI
-     */
-    async function sendFileToBackend(file, targetFormat) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        let endpoint = `${API_BASE_URL}/convert/pandoc?from_format=${getFileExtension(file.name)}&to_format=${targetFormat}`;
-        
-        // Endpoint spécifique pour le cas PDF -> DOCX
-        if (file.name.toLowerCase().endsWith('.pdf') && targetFormat === 'docx') {
-            endpoint = `${API_BASE_URL}/convert/pdf-to-docx`;
-        }
-
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            body: formData
+        selectedFiles.forEach((file, index) => {
+            const li = document.createElement('li');
+            li.className = 'py-2 flex items-center justify-between text-xs text-slate-600';
+            li.innerHTML = `
+                <span class="truncate max-w-xs font-medium text-slate-800">${file.name}</span>
+                <div class="flex items-center gap-3">
+                    <span class="text-slate-400">${(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                    <button type="button" class="text-red-500 hover:text-red-700 remove-btn" data-index="${index}">
+                        <i class="fas font-trash"></i>
+                    </button>
+                </div>
+            `;
+            fileList.appendChild(li);
         });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Erreur serveur (${response.status})`);
-        }
-
-        const blob = await response.blob();
-        const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-        downloadBlob(blob, `${baseName}.${targetFormat}`);
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(e.currentTarget.getAttribute('data-index'));
+                selectedFiles.splice(idx, 1);
+                updateFileList();
+            });
+        });
     }
 
-    /**
-     * Merge PDFs in browser using PDF-Lib
-     */
-    async function processPdfMerge() {
-        updateProgress(20, 'Lecture des fichiers PDF...');
-        
-        try {
-            const { PDFDocument } = PDFLib;
-            const mergedPdf = await PDFDocument.create();
+    // Affichage conditionnel des sous-champs
+    secureCheckbox.addEventListener('change', () => {
+        passwordField.classList.toggle('hidden', !secureCheckbox.checked);
+    });
 
-            for (let i = 0; i < selectedFiles.length; i++) {
-                const file = selectedFiles[i];
-                if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdf = await PDFDocument.load(arrayBuffer);
-                    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-                    copiedPages.forEach((page) => mergedPdf.addPage(page));
-                }
-                const percent = 20 + Math.round(((i + 1) / selectedFiles.length) * 60);
-                updateProgress(percent, `Fusion de ${file.name}...`);
+    splitCheckbox.addEventListener('change', () => {
+        splitOptions.classList.toggle('hidden', !splitCheckbox.checked);
+    });
+
+    // Soumission du formulaire
+    converterForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (selectedFiles.length === 0) {
+            alert('Veuillez sélectionner au moins un fichier.');
+            return;
+        }
+
+        const formData = new FormData();
+        selectedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+
+        formData.append('output_format', formatSelect.value);
+        formData.append('secure', secureCheckbox.checked);
+        formData.append('password', pdfPasswordInput.value || '');
+        formData.append('compress', compressCheckbox.checked);
+        formData.append('merge', mergeCheckbox.checked);
+        formData.append('split', splitCheckbox.checked);
+        formData.append('page_range', pageRangeInput.value || '');
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fas font-spinner fa-spin"></i> Traitement en cours...`;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/convert`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.detail || 'Erreur lors du traitement');
             }
 
-            updateProgress(90, 'Génération du PDF fusionné...');
-            const mergedPdfBytes = await mergedPdf.save();
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            
+            // Nom de fichier de sortie
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `resultat.${formatSelect.value}`;
+            if (contentDisposition && contentDisposition.includes('filename=')) {
+                filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
+            }
+            a.download = filename;
+            
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
 
-            const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
-            downloadBlob(blob, 'Document_Fusionne_FileConvert.pdf');
+            alert('Traitement réussi ! Votre fichier à été téléchargé.');
 
-            updateProgress(100, 'Fusion terminée avec succès !');
-            showToast('PDFs fusionnés et téléchargés avec succès !', 'success');
-        } catch (error) {
-            console.error(error);
-            showToast('Erreur lors de la fusion PDF local. Assurez-vous d\'importer uniquement des PDF valides.', 'error');
+        } catch (err) {
+            alert(`Erreur : ${err.message}`);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i class="fas font-gear"></i> Lancer la Conversion`;
         }
-    }
-
-    function downloadBlob(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    function updateProgress(percent, statusText) {
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = `${percent}%`;
-        progressPercent.textContent = `${percent}%`;
-        if (statusText) progressStatus.textContent = statusText;
-    }
-
-    function setLoadingState(isLoading) {
-        if (isLoading) {
-            convertBtn.disabled = true;
-            convertBtn.classList.add('opacity-75', 'cursor-not-allowed');
-            btnText.textContent = 'Traitement en cours...';
-        } else {
-            convertBtn.disabled = false;
-            convertBtn.classList.remove('opacity-75', 'cursor-not-allowed');
-            btnText.textContent = 'Lancer la Conversion';
-            setTimeout(() => {
-                progressContainer.classList.add('hidden');
-                progressBar.style.width = '0%';
-            }, 3000);
-        }
-    }
-
-    /**
-     * Toast Notification Helper
-     */
-    function showToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        const bgColors = {
-            success: 'bg-emerald-600 text-white',
-            error: 'bg-rose-600 text-white',
-            warning: 'bg-amber-500 text-white',
-            info: 'bg-slate-900 text-white'
-        };
-
-        const icons = {
-            success: 'fa-circle-check',
-            error: 'fa-triangle-exclamation',
-            warning: 'fa-circle-exclamation',
-            info: 'fa-circle-info'
-        };
-
-        toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium ${bgColors[type]} transition-all transform duration-300 translate-y-2 opacity-0 pointer-events-auto`;
-        toast.innerHTML = `<i class="fa-solid ${icons[type]} text-base"></i> <span>${message}</span>`;
-
-        toastContainer.appendChild(toast);
-
-        setTimeout(() => {
-            toast.classList.remove('translate-y-2', 'opacity-0');
-        }, 10);
-
-        setTimeout(() => {
-            toast.classList.add('opacity-0', 'translate-y-2');
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    }
-
-    // Helper functions
-    function formatBytes(bytes, decimals = 2) {
-        if (bytes === 0) return '0 Octet';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Octets', 'Ko', 'Mo', 'Go'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    }
-
-    function getFileExtension(filename) {
-        return filename.split('.').pop().toLowerCase();
-    }
-
-    function getFileIcon(filename) {
-        const ext = getFileExtension(filename);
-        switch (ext) {
-            case 'pdf': return 'fa-solid fa-file-pdf';
-            case 'doc':
-            case 'docx': return 'fa-solid fa-file-word';
-            case 'epub':
-            case 'mobi': return 'fa-solid fa-book';
-            default: return 'fa-solid fa-file-lines';
-        }
-    }
+    });
 });
