@@ -1,175 +1,203 @@
-/**
- * FileConvert Pro - Logic & API Handler
- */
+// URL de l'API Backend sur Render
+const API_URL = "https://convertisseur-de-fichier.onrender.com/convert";
 
-document.addEventListener('DOMContentLoaded', () => {
-    // URL de l'API en ligne hébergée sur Render
-    const API_BASE_URL = 'https://convertisseur-de-fichier.onrender.com';
+// Éléments du DOM
+const form = document.getElementById('converter-form');
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-upload');
+const fileListContainer = document.getElementById('file-list-container');
+const fileList = document.getElementById('file-list');
+const fileCounter = document.getElementById('file-counter');
+const submitBtn = document.getElementById('submit-btn');
 
-    // DOM Elements
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-upload');
-    const fileCounter = document.getElementById('file-counter');
-    const fileListContainer = document.getElementById('file-list-container');
-    const fileList = document.getElementById('file-list');
-    const formatSelect = document.getElementById('format-select');
-    
-    // Checkboxes PDF
-    const secureCheckbox = document.getElementById('secure-pdf');
-    const passwordField = document.getElementById('password-field');
-    const pdfPasswordInput = document.getElementById('pdf-password');
-    const compressCheckbox = document.getElementById('compress-pdf');
-    const mergeCheckbox = document.getElementById('merge-pdf');
-    
-    // Nouveaux éléments pour la division
-    const splitCheckbox = document.getElementById('split-pdf');
-    const splitOptions = document.getElementById('split-options');
-    const pageRangeInput = document.getElementById('page-range');
+// Éléments de la barre de progression
+const progressContainer = document.getElementById('progress-container');
+const progressBar = document.getElementById('progress-bar');
+const progressPercent = document.getElementById('progress-percent');
+const progressStatus = document.getElementById('progress-status');
 
-    const converterForm = document.getElementById('converter-form');
-    const submitBtn = document.getElementById('submit-btn');
+// Options PDF
+const securePdf = document.getElementById('secure-pdf');
+const passwordField = document.getElementById('password-field');
+const splitPdf = document.getElementById('split-pdf');
+const splitOptions = document.getElementById('split-options');
 
-    let selectedFiles = [];
+let filesArray = [];
 
-    // Drag & Drop
-    dropZone.addEventListener('click', () => fileInput.click());
-
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, preventDefaults, false);
+// Gestionnaires d'événements pour les options
+if (securePdf) {
+    securePdf.addEventListener('change', () => {
+        passwordField.classList.toggle('hidden', !securePdf.checked);
     });
+}
 
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
+if (splitPdf) {
+    splitPdf.addEventListener('change', () => {
+        splitOptions.classList.toggle('hidden', !splitPdf.checked);
+    });
+}
+
+// Drag & Drop
+dropZone.addEventListener('click', () => fileInput.click());
+
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('border-indigo-500', 'bg-indigo-100/50');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-indigo-500', 'bg-indigo-100/50');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-indigo-500', 'bg-indigo-100/50');
+    if (e.dataTransfer.files.length > 0) {
+        handleFiles(e.dataTransfer.files);
     }
+});
 
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.classList.add('border-indigo-500', 'bg-indigo-50/50');
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/50');
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        handleFiles(dt.files);
-    });
-
-    fileInput.addEventListener('change', (e) => {
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
         handleFiles(e.target.files);
-    });
+    }
+});
 
-    function handleFiles(files) {
-        const newFiles = Array.from(files);
-        selectedFiles = [...selectedFiles, ...newFiles];
-        updateFileList();
+function handleFiles(files) {
+    filesArray = Array.from(files);
+    updateFileList();
+}
+
+function updateFileList() {
+    fileList.innerHTML = '';
+    if (filesArray.length === 0) {
+        fileListContainer.classList.add('hidden');
+        return;
+    }
+    fileListContainer.classList.remove('hidden');
+    fileCounter.textContent = filesArray.length;
+
+    filesArray.forEach((file, index) => {
+        const li = document.createElement('li');
+        li.className = 'py-2 flex items-center justify-between text-xs font-medium text-slate-700';
+        li.innerHTML = `
+            <span class="truncate max-w-[200px] sm:max-w-[300px] font-semibold text-slate-800">${file.name}</span>
+            <div class="flex items-center gap-3">
+                <span class="text-slate-400 font-mono">${(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                <button type="button" class="text-rose-500 hover:text-rose-700 transition-colors p-1" onclick="removeFile(${index})">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        `;
+        fileList.appendChild(li);
+    });
+}
+
+window.removeFile = function(index) {
+    filesArray.splice(index, 1);
+    updateFileList();
+};
+
+// Soumission du formulaire avec progression en temps réel
+form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    if (filesArray.length === 0) {
+        alert("Veuillez sélectionner au moins un fichier.");
+        return;
     }
 
-    function updateFileList() {
-        fileList.innerHTML = '';
-        if (selectedFiles.length === 0) {
-            fileListContainer.classList.add('hidden');
-            return;
+    const formData = new FormData();
+    filesArray.forEach(file => formData.append('files', file));
+
+    formData.append('output_format', document.getElementById('format-select').value);
+    formData.append('secure', securePdf ? securePdf.checked : false);
+    formData.append('password', document.getElementById('pdf-password')?.value || '');
+    formData.append('compress', document.getElementById('compress-pdf')?.checked || false);
+    formData.append('merge', document.getElementById('merge-pdf')?.checked || false);
+    formData.append('split', splitPdf ? splitPdf.checked : false);
+    formData.append('page_range', document.getElementById('page-range')?.value || '');
+
+    // Changement de l'état du bouton
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    submitBtn.querySelector('span').textContent = 'Traitement en cours...';
+
+    // Afficher la barre de progression
+    progressContainer.classList.remove('hidden');
+    updateProgress(10, "Connexion au serveur...");
+
+    const xhr = new XMLHttpRequest();
+    
+    // Suivi de l'envoi du fichier (% d'avancement)
+    xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 85);
+            updateProgress(percentComplete, `Envoi et traitement (${percentComplete}%)...`);
         }
+    };
 
-        fileListContainer.classList.remove('hidden');
-        fileCounter.textContent = selectedFiles.length;
+    xhr.open('POST', API_URL, true);
+    xhr.responseType = 'blob';
 
-        selectedFiles.forEach((file, index) => {
-            const li = document.createElement('li');
-            li.className = 'py-2 flex items-center justify-between text-xs text-slate-600';
-            li.innerHTML = `
-                <span class="truncate max-w-xs font-medium text-slate-800">${file.name}</span>
-                <div class="flex items-center gap-3">
-                    <span class="text-slate-400">${(file.size / (1024 * 1024)).toFixed(2)} MB</span>
-                    <button type="button" class="text-red-500 hover:text-red-700 remove-btn" data-index="${index}">
-                        <i class="fas font-trash"></i>
-                    </button>
-                </div>
-            `;
-            fileList.appendChild(li);
-        });
+    xhr.onload = () => {
+        if (xhr.status === 200) {
+            updateProgress(100, "Terminé ! Téléchargement automatique...");
 
-        document.querySelectorAll('.remove-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = parseInt(e.currentTarget.getAttribute('data-index'));
-                selectedFiles.splice(idx, 1);
-                updateFileList();
-            });
-        });
-    }
+            const blob = xhr.response;
+            const format = document.getElementById('format-select').value;
+            let filename = `document_converti.${format}`;
 
-    // Affichage conditionnel des sous-champs
-    secureCheckbox.addEventListener('change', () => {
-        passwordField.classList.toggle('hidden', !secureCheckbox.checked);
-    });
-
-    splitCheckbox.addEventListener('change', () => {
-        splitOptions.classList.toggle('hidden', !splitCheckbox.checked);
-    });
-
-    // Soumission du formulaire
-    converterForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        if (selectedFiles.length === 0) {
-            alert('Veuillez sélectionner au moins un fichier.');
-            return;
-        }
-
-        const formData = new FormData();
-        selectedFiles.forEach(file => {
-            formData.append('files', file);
-        });
-
-        formData.append('output_format', formatSelect.value);
-        formData.append('secure', secureCheckbox.checked);
-        formData.append('password', pdfPasswordInput.value || '');
-        formData.append('compress', compressCheckbox.checked);
-        formData.append('merge', mergeCheckbox.checked);
-        formData.append('split', splitCheckbox.checked);
-        formData.append('page_range', pageRangeInput.value || '');
-
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `<i class="fas font-spinner fa-spin"></i> Traitement en cours...`;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/convert`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.detail || 'Erreur lors du traitement');
+            // Récupérer le nom de fichier retourné par le serveur si présent
+            const contentDisposition = xhr.getResponseHeader('Content-Disposition');
+            if (contentDisposition && contentDisposition.includes('filename=')) {
+                const match = contentDisposition.match(/filename="?([^";]+)"?/);
+                if (match && match[1]) filename = match[1];
             }
 
-            const blob = await response.blob();
+            // Déclenchement automatique et silencieux du téléchargement (SANS POP-UP)
             const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = downloadUrl;
-            
-            // Nom de fichier de sortie
-            const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = `resultat.${formatSelect.value}`;
-            if (contentDisposition && contentDisposition.includes('filename=')) {
-                filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
-            }
             a.download = filename;
-            
             document.body.appendChild(a);
             a.click();
             a.remove();
             window.URL.revokeObjectURL(downloadUrl);
 
-            alert('Traitement réussi ! Votre fichier à été téléchargé.');
+            // Réinitialisation douce de l'interface
+            setTimeout(() => {
+                resetUI();
+            }, 2000);
 
-        } catch (err) {
-            alert(`Erreur : ${err.message}`);
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = `<i class="fas font-gear"></i> Lancer la Conversion`;
+        } else {
+            updateProgress(0, "Erreur lors du traitement.");
+            alert("Une erreur est survenue lors de la conversion. Vérifiez vos paramètres.");
+            resetUI();
         }
-    });
+    };
+
+    xhr.onerror = () => {
+        updateProgress(0, "Erreur réseau.");
+        alert("Impossible de contacter le serveur. Vérifiez votre connexion.");
+        resetUI();
+    };
+
+    xhr.send(formData);
 });
+
+function updateProgress(percent, statusText) {
+    if (progressBar) progressBar.style.width = `${percent}%`;
+    if (progressPercent) progressPercent.textContent = `${percent}%`;
+    if (progressStatus) {
+        progressStatus.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> ${statusText}`;
+    }
+}
+
+function resetUI() {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+    submitBtn.querySelector('span').textContent = 'Lancer la Conversion';
+    progressContainer.classList.add('hidden');
+    updateProgress(0, '');
+}
