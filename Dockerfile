@@ -1,6 +1,9 @@
 # 1. Utiliser une base Linux avec Python
 FROM python:3.10-slim
 
+# Éviter les invites interactives pendant l'installation
+ENV DEBIAN_FRONTEND=noninteractive
+
 # 2. Installer LibreOffice, Calibre et les outils système
 RUN apt-get update && apt-get install -y \
     libreoffice \
@@ -11,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Télécharger et installer automatiquement les polices Microsoft (Arial, Times, Calibri...)
+# 3. Télécharger et installer automatiquement les polices Microsoft
 RUN wget https://www.freedesktop.org/software/fontconfig/webfonts/webfonts.tar.gz && \
     tar -xzf webfonts.tar.gz && \
     cd msfonts && \
