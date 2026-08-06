@@ -4,10 +4,11 @@ FROM python:3.10-slim
 # Éviter les invites interactives pendant l'installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 2. Installer LibreOffice, Calibre et les outils système
+# 2. Installer LibreOffice, Calibre, Xvfb et les outils système
 RUN apt-get update && apt-get install -y \
     libreoffice \
     calibre \
+    xvfb \
     fonts-liberation \
     fontconfig \
     cabextract \
