@@ -1,8 +1,24 @@
-fastapi
-uvicorn
-python-multipart
-PyMuPDF
-pdf2docx
-docx2pdf
-EbookLib
-Pillow
+# FileConvert Pro v2.2.0 - Backend Dependencies
+# Python 3.10+
+
+# Framework Web
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# PDF Processing
+PyMuPDF==1.23.8  # Formerly fitz - PDF manipulation, merging, encryption, compression
+Pillow==10.1.0   # Image handling (JPG, PNG, WebP, HEIC, BMP)
+img2pdf==1.4.1   # Convert images to PDF
+
+# Optional: For future EPUB/MOBI/AZW3 support (not currently used)
+# EbookLib==0.18.0
+# PyPDF2==3.17.0
+
+# Logging & Monitoring
+python-json-logger==2.0.7  # For structured logging (optional but recommended)
+
+# Development (remove in production)
+# pytest==7.4.0
+# black==23.11.0
+# flake8==6.1.0
