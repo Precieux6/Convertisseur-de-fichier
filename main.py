@@ -7,7 +7,7 @@ import subprocess
 import fitz  # PyMuPDF
 from typing import List, Optional
 from datetime import datetime, timedelta
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
@@ -40,7 +40,7 @@ MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 # Extensions et MIME types autorisés
 ALLOWED_EXTENSIONS = {
     '.pdf', '.docx', '.doc', '.epub', '.mobi', '.azw3', '.txt',
-    '.jpg', '.jpeg', '.png', '.webp', '.heic', '.bmp'
+    '.jpg', '.jpeg', '.png', '.webp', '.heic', '.bmp', '.avif'
 }
 
 ALLOWED_MIME_TYPES = {
@@ -55,7 +55,8 @@ ALLOWED_MIME_TYPES = {
     'image/png',
     'image/webp',
     'image/heic',
-    'image/bmp'
+    'image/bmp',
+    'image/avif'
 }
 
 # ============================================================
@@ -151,14 +152,15 @@ def encrypt_pdf(pdf_path: str, password: str, output_path: str):
 
 
 def compress_pdf(pdf_path: str, output_path: str):
-    """Compresse un PDF en réduisant la résolution des images."""
+    """Compresse un PDF en optimisant sa structure et ses flux d'images."""
     try:
         doc = fitz.open(pdf_path)
-        for page_num, page in enumerate(doc):
-            for img_index in page.get_images():
-                xref = page.get_image_info(img_index)[-1]
-                doc.fullcopy_page(xref, shrink=2)
-        doc.save(output_path, incremental=True, encryption=fitz.PDF_ENCRYPT_NONE)
+        doc.save(
+            output_path,
+            garbage=4,
+            deflate=True,
+            clean=True
+        )
         doc.close()
         logger.info(f"PDF compressé : {output_path}")
     except Exception as e:
@@ -333,6 +335,7 @@ async def health_check():
 
 @app.post("/convert")
 async def convert_files(
+    background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
     output_format: str = Form(default="pdf"),
     merge: bool = Form(default=False),
@@ -460,18 +463,22 @@ async def convert_files(
             elif single_file.endswith(".epub"):
                 mime_type = "application/epub+zip"
             elif single_file.endswith(".mobi"):
-                mime_type = "application/x-mobi8-ebook"
+        mime_type = "application/x-mobi8-ebook"
 
-            return FileResponse(
-                single_file,
-                media_type=mime_type,
-                filename=os.path.basename(single_file)
-            )
-        
-        zip_base_path = os.path.join(TEMP_DIR, f"converted_{job_id}")
-        zip_file_path = shutil.make_archive(zip_base_path, 'zip', job_dir)
-        
-        return FileResponse(
+    background_tasks.add_task(cleanup_directory, job_dir)
+
+    return FileResponse(
+        single_file,
+        media_type=mime_type,
+        filename=os.path.basename(single_file)
+    )
+
+zip_base_path = os.path.join(TEMP_DIR, f"converted_{job_id}")
+zip_file_path = shutil.make_archive(zip_base_path, 'zip', job_dir)
+
+background_tasks.add_task(cleanup_directory, job_dir)
+
+return FileResponse(
             zip_file_path,
             media_type="application/zip",
             filename="fichiers_convertis.zip"
