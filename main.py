@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 import img2pdf
+from pdf2docx import Converter
 import logging
 
 # Configuration du logging
@@ -262,6 +263,24 @@ def convert_images_to_pdf(image_paths: List[str], output_pdf_path: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur conversion images : {str(e)}")
 
+def convert_pdf_to_docx(pdf_path: str, output_dir: str) -> str:
+    """Convertit un fichier PDF en document Word (.docx)."""
+    try:
+        base_name = os.path.splitext(os.path.basename(pdf_path))[0]
+        docx_path = os.path.join(output_dir, f"{base_name}.docx")
+        
+        cv = Converter(pdf_path)
+        cv.convert(docx_path, start=0, end=None)
+        cv.close()
+        
+        if not os.path.exists(docx_path):
+            raise FileNotFoundError(f"Conversion échouée : {docx_path} non trouvé")
+            
+        logger.info(f"PDF converti en DOCX : {docx_path}")
+        return docx_path
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur conversion PDF vers DOCX : {str(e)}")
+
 def convert_with_calibre(input_path: str, output_format: str, output_dir: str) -> str:
     """
     Convertit n'importe quel document source vers le format Ebook désiré
@@ -384,8 +403,12 @@ async def convert_files(
                 image_batch.append(path)
             
             # Traiter PDFs
-            elif ext == ".pdf":
-                pdf_batch.append(path)
+elif ext == ".pdf":
+    if target_fmt in ["docx", "doc"]:
+        docx_file = convert_pdf_to_docx(path, job_dir)
+        processed_paths.append(docx_file)
+    else:
+        pdf_batch.append(path)
             
             # Autres formats
             else:
