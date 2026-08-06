@@ -262,7 +262,39 @@ def convert_images_to_pdf(image_paths: List[str], output_pdf_path: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur conversion images : {str(e)}")
 
+def convert_with_calibre(input_path: str, output_format: str, output_dir: str) -> str:
+    """
+    Convertit n'importe quel document source vers le format Ebook désiré
+    en utilisant l'outil CLI Calibre (ebook-convert).
+    """
+    try:
+        base_name = os.path.splitext(os.path.basename(input_path))[0]
+        output_filename = f"{base_name}.{output_format.lower().strip()}"
+        output_path = os.path.join(output_dir, output_filename)
 
+        cmd = [
+            "ebook-convert",
+            input_path,
+            output_path
+        ]
+        
+        # Exécution avec un timeout de 120 secondes (la conversion d'ebooks peut prendre un peu de temps)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
+
+        if result.returncode != 0:
+            logger.error(f"Erreur Calibre STDERR: {result.stderr}")
+            raise Exception(f"Échec de conversion Calibre (code {result.returncode})")
+
+        if not os.path.exists(output_path):
+            raise FileNotFoundError(f"Fichier de sortie Ebook non trouvé: {output_path}")
+
+        logger.info(f"Ebook généré avec succès via Calibre: {output_path}")
+        return output_path
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="La conversion d'ebook a expiré (timeout 120s)")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur conversion Ebook : {str(e)}")
+        
 # ============================================================
 # ENDPOINTS API
 # ============================================================
@@ -331,11 +363,19 @@ async def convert_files(
         image_batch = []
         pdf_batch = []
         
+        EBOOK_FORMATS = {'epub', 'mobi', 'azw3', 'fb2', 'lit', 'lrf', 'pdb', 'rb', 'snb', 'tbr'}
+        target_fmt = output_format.lower().strip()
+
         for path in saved_paths:
             ext = os.path.splitext(path)[1].lower()
             
-            # Traiter Word
-            if ext in [".docx", ".doc"]:
+            # Si le format de sortie demandé est un Ebook OU si le fichier d'entrée est un Ebook
+            if target_fmt in EBOOK_FORMATS or ext in ['.epub', '.mobi', '.azw3']:
+                ebook_output = convert_with_calibre(path, target_fmt, job_dir)
+                processed_paths.append(ebook_output)
+
+            # Traiter Word vers PDF classique
+            elif ext in [".docx", ".doc"]:
                 pdf_path = convert_docx_to_pdf_libreoffice(path, job_dir)
                 pdf_batch.append(pdf_path)
             
@@ -347,7 +387,7 @@ async def convert_files(
             elif ext == ".pdf":
                 pdf_batch.append(path)
             
-            # Autres formats (passthrough pour l'instant)
+            # Autres formats
             else:
                 processed_paths.append(path)
         
@@ -401,10 +441,20 @@ async def convert_files(
         
         # Un seul fichier : le retourner directement
         if len(processed_paths) == 1:
+            single_file = processed_paths[0]
+            # Détection basique du type MIME pour la réponse
+            mime_type = "application/octet-stream"
+            if single_file.endswith(".pdf"):
+                mime_type = "application/pdf"
+            elif single_file.endswith(".epub"):
+                mime_type = "application/epub+zip"
+            elif single_file.endswith(".mobi"):
+                mime_type = "application/x-mobi8-ebook"
+
             return FileResponse(
-                processed_paths[0],
-                media_type="application/pdf",
-                filename=os.path.basename(processed_paths[0])
+                single_file,
+                media_type=mime_type,
+                filename=os.path.basename(single_file)
             )
         
         # Plusieurs fichiers : zipper
