@@ -456,29 +456,29 @@ async def convert_files(
         if len(processed_paths) == 1:
             single_file = processed_paths[0]
             mime_type = "application/octet-stream"
-        if single_file.endswith(".pdf"):
-            mime_type = "application/pdf"
-        elif single_file.endswith(".docx"):
-            mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        elif single_file.endswith(".epub"):
-            mime_type = "application/epub+zip"
-        elif single_file.endswith(".mobi"):
-            mime_type = "application/x-mobi8-ebook"
+            if single_file.endswith(".pdf"):
+                mime_type = "application/pdf"
+            elif single_file.endswith(".docx"):
+                mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            elif single_file.endswith(".epub"):
+                mime_type = "application/epub+zip"
+            elif single_file.endswith(".mobi"):
+                mime_type = "application/x-mobi8-ebook"
+
+            background_tasks.add_task(cleanup_directory, job_dir)
+
+            return FileResponse(
+                single_file,
+                media_type=mime_type,
+                filename=os.path.basename(single_file)
+            )
+
+        zip_base_path = os.path.join(TEMP_DIR, f"converted_{job_id}")
+        zip_file_path = shutil.make_archive(zip_base_path, 'zip', job_dir)
 
         background_tasks.add_task(cleanup_directory, job_dir)
 
         return FileResponse(
-            single_file,
-            media_type=mime_type,
-            filename=os.path.basename(single_file)
-        )
-
-zip_base_path = os.path.join(TEMP_DIR, f"converted_{job_id}")
-zip_file_path = shutil.make_archive(zip_base_path, 'zip', job_dir)
-
-background_tasks.add_task(cleanup_directory, job_dir)
-
-return FileResponse(
             zip_file_path,
             media_type="application/zip",
             filename="fichiers_convertis.zip"
