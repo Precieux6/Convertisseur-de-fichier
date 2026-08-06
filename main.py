@@ -276,13 +276,15 @@ def convert_pdf_to_docx(pdf_path: str, output_dir: str) -> str:
 
 
 def convert_with_calibre(input_path: str, output_format: str, output_dir: str) -> str:
-    """Convertit un document en Ebook avec Calibre (ebook-convert)."""
+    """Convertit un document en Ebook / PDF / DOCX avec Calibre (ebook-convert)."""
     try:
         base_name = os.path.splitext(os.path.basename(input_path))[0]
         output_filename = f"{base_name}.{output_format.lower().strip()}"
         output_path = os.path.join(output_dir, output_filename)
 
+        # Execution via xvfb-run pour gérer le rendu headless Linux sans affichage X11
         cmd = [
+            "xvfb-run", "--auto-servernum",
             "ebook-convert",
             input_path,
             output_path
@@ -292,7 +294,8 @@ def convert_with_calibre(input_path: str, output_format: str, output_dir: str) -
 
         if result.returncode != 0:
             logger.error(f"Erreur Calibre STDERR: {result.stderr}")
-            raise Exception(f"Échec de conversion Calibre (code {result.returncode})")
+            error_detail = result.stderr.strip().split('\n')[-1] if result.stderr else f"code {result.returncode}"
+            raise Exception(f"Échec Calibre : {error_detail}")
 
         if not os.path.exists(output_path):
             raise FileNotFoundError(f"Fichier de sortie Ebook non trouvé: {output_path}")
@@ -366,24 +369,34 @@ async def convert_files(
         for path in saved_paths:
             ext = os.path.splitext(path)[1].lower()
             
+            # Cas 1: Si le format cible ou d'entrée est un eBook
             if target_fmt in EBOOK_FORMATS or ext in ['.epub', '.mobi', '.azw3']:
-                ebook_output = convert_with_calibre(path, target_fmt, job_dir)
-                processed_paths.append(ebook_output)
+                if ext == ".pdf" and target_fmt in ["docx", "doc"]:
+                    docx_file = convert_pdf_to_docx(path, job_dir)
+                    processed_paths.append(docx_file)
+                else:
+                    ebook_output = convert_with_calibre(path, target_fmt, job_dir)
+                    processed_paths.append(ebook_output)
 
+            # Cas 2: Documents Word
             elif ext in [".docx", ".doc"]:
                 pdf_path = convert_docx_to_pdf_libreoffice(path, job_dir)
                 pdf_batch.append(pdf_path)
             
+            # Cas 3: Images
             elif ext in [".jpg", ".jpeg", ".png", ".webp", ".heic", ".bmp"]:
                 image_batch.append(path)
             
+            # Cas 4: PDF vers DOCX/DOC
+            elif ext == ".pdf" and target_fmt in ["docx", "doc"]:
+                docx_file = convert_pdf_to_docx(path, job_dir)
+                processed_paths.append(docx_file)
+
+            # Cas 5: PDF standard vers PDF
             elif ext == ".pdf":
-                if target_fmt in ["docx", "doc"]:
-                    docx_file = convert_pdf_to_docx(path, job_dir)
-                    processed_paths.append(docx_file)
-                else:
-                    pdf_batch.append(path)
+                pdf_batch.append(path)
             
+            # Cas 6: Autres fichiers texte
             else:
                 processed_paths.append(path)
         
