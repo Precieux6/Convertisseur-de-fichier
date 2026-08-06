@@ -309,13 +309,49 @@
         <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p>&copy; 2026 FileConvert Pro. Tous droits réservés.</p>
             <div class="flex gap-6 text-slate-400 font-medium">
-                <a href="#" class="hover:text-indigo-400 transition-colors">Confidentialité</a>
-                <a href="#" class="hover:text-indigo-400 transition-colors">CGU</a>
-                <a href="#" class="hover:text-indigo-400 transition-colors">Contact</a>
+                <a href="#" onclick="openModal('privacyModal'); return false;" class="hover:text-indigo-400 transition-colors">Confidentialité</a>
+<a href="#" onclick="openModal('cguModal'); return false;" class="hover:text-indigo-400 transition-colors">CGU</a>
+<a href="https://precieux6.github.io/MON-PORTFOLIO/#contact" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 transition-colors">Contact</a>
             </div>
         </div>
     </footer>
 
+    <!-- Modal : Confidentialité -->
+    <div id="privacyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div class="bg-slate-800 border border-slate-700 text-slate-200 rounded-2xl p-6 sm:p-8 max-w-lg w-full relative shadow-2xl space-y-4">
+            <button onclick="closeModal('privacyModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+            <h2 class="text-xl font-bold text-indigo-400 flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved"></i> Politique de Confidentialité
+            </h2>
+            <div class="text-sm space-y-3 text-slate-300">
+                <p><strong>FileConvert Pro</strong> garantit la protection de vos données :</p>
+                <ul class="list-disc pl-5 space-y-2 text-xs sm:text-sm">
+                    <li><strong>Traitement temporaire :</strong> Vos fichiers sont uniquement utilisés pour la conversion demandée.</li>
+                    <li><strong>Suppression automatique :</strong> Tout document est automatiquement supprimé du serveur après 2 heures max.</li>
+                    <li><strong>Aucune collecte :</strong> Aucune donnée personnelle n'est conservée ni partagée.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal : CGU -->
+    <div id="cguModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div class="bg-slate-800 border border-slate-700 text-slate-200 rounded-2xl p-6 sm:p-8 max-w-lg w-full relative shadow-2xl space-y-4">
+            <button onclick="closeModal('cguModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+            <h2 class="text-xl font-bold text-indigo-400 flex items-center gap-2">
+                <i class="fa-solid fa-file-contract"></i> Conditions Générales d'Utilisation
+            </h2>
+            <div class="text-sm space-y-3 text-slate-300">
+                <p>En utilisant ce service, vous acceptez les conditions suivantes :</p>
+                <ul class="list-disc pl-5 space-y-2 text-xs sm:text-sm">
+                    <li><strong>Accès gratuit :</strong> Service fourni pour la conversion de fichiers jusqu'à 100 Mo.</li>
+                    <li><strong>Responsabilité :</strong> L'utilisateur est seul responsable des fichiers téléversés. Tout contenu illégal est interdit.</li>
+                    <li><strong>Garantie :</strong> Le service est fourni « en l'état » sans garantie sur des fichiers corrompus.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
     <script src="app.js" defer></script>
 </body>
 </html>
