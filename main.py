@@ -454,8 +454,8 @@ async def convert_files(
             raise HTTPException(status_code=500, detail="Aucun fichier traité")
         
         if len(processed_paths) == 1:
-        single_file = processed_paths[0]
-        mime_type = "application/octet-stream"
+            single_file = processed_paths[0]
+            mime_type = "application/octet-stream"
         if single_file.endswith(".pdf"):
             mime_type = "application/pdf"
         elif single_file.endswith(".docx"):
