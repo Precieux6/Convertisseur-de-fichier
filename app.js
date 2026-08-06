@@ -10,6 +10,8 @@ const ALLOWED_EXTENSIONS = new Set(['pdf', 'docx', 'doc', 'epub', 'mobi', 'azw3'
 
 let selectedFiles = [];
 let isProcessing = false;
+let currentBlob = null;
+let defaultExtension = "";
 
 // ============================================================
 // ÉLÉMENTS DU DOM
@@ -240,6 +242,29 @@ if (convertBtn) {
     });
 }
 
+// Écouteur d'événement pour le téléchargement manuel
+document.addEventListener("DOMContentLoaded", () => {
+    const downloadBtn = document.getElementById("download-btn");
+    if (downloadBtn) {
+        downloadBtn.addEventListener("click", () => {
+            if (!currentBlob) return;
+
+            const nameInput = document.getElementById("custom-filename-input");
+            const userEnteredName = nameInput ? nameInput.value.trim() : "";
+            const finalFilename = (userEnteredName || "fichier_converti") + defaultExtension;
+
+            const downloadUrl = window.URL.createObjectURL(currentBlob);
+            const a = document.createElement("a");
+            a.href = downloadUrl;
+            a.download = finalFilename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+        });
+    }
+});
+
 async function processFiles() {
     if (isProcessing) {
         showAlert("Attention", "Traitement déjà en cours...", "warning");
@@ -251,7 +276,6 @@ async function processFiles() {
         return;
     }
 
-    // Validation des options
     if (splitCheckbox?.checked && !pageRangeInput?.value.trim()) {
         showAlert("Erreur", "Veuillez indiquer les pages à extraire (ex: 1-4, 6)", "error");
         return;
@@ -265,109 +289,91 @@ async function processFiles() {
     isProcessing = true;
     if (convertBtn) convertBtn.disabled = true;
 
-    // Afficher la barre de progression
+    const resultContainer = document.getElementById("result-container");
+    const nameInput = document.getElementById("custom-filename-input");
+
+    if (resultContainer) resultContainer.classList.add("hidden");
     if (statusContainer) {
         statusContainer.classList.remove("hidden");
-        updateProgressBar(0, "Préparation du traitement...");
+        updateProgressBar(0, "Préparation des fichiers...");
     }
 
-    try {
-        const formData = new FormData();
+    const formData = new FormData();
+    selectedFiles.forEach(file => formData.append("files", file));
+    formData.append("output_format", outputFormatSelect?.value || "pdf");
+    formData.append("merge", (mergeCheckbox?.checked || false).toString());
+    formData.append("split", (splitCheckbox?.checked || false).toString());
+    formData.append("page_range", pageRangeInput?.value || "");
+    formData.append("secure", (secureCheckbox?.checked || false).toString());
+    formData.append("password", passwordInput?.value || "");
+    formData.append("compress", (compressCheckbox?.checked || false).toString());
 
-        // Ajouter les fichiers
-        selectedFiles.forEach(file => formData.append("files", file));
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_URL}/convert`, true);
+    xhr.responseType = "blob";
 
-        // Ajouter les options
-        formData.append("output_format", outputFormatSelect?.value || "pdf");
-        formData.append("merge", (mergeCheckbox?.checked || false).toString());
-        formData.append("split", (splitCheckbox?.checked || false).toString());
-        formData.append("page_range", pageRangeInput?.value || "");
-        formData.append("secure", (secureCheckbox?.checked || false).toString());
-        formData.append("password", passwordInput?.value || "");
-        formData.append("compress", (compressCheckbox?.checked || false).toString());
-
-        // Afficher les options sélectionnées
-        const options = [];
-        if (mergeCheckbox?.checked) options.push("fusion");
-        if (splitCheckbox?.checked) options.push("division");
-        if (compressCheckbox?.checked) options.push("compression");
-        if (secureCheckbox?.checked) options.push("chiffrement");
-
-        const optionsText = options.length > 0 ? ` (${options.join(", ")})` : "";
-        updateProgressBar(10, `Envoi des fichiers${optionsText}...`);
-
-        // Envoyer la requête
-        const response = await fetch(`${API_URL}/convert`, {
-            method: "POST",
-            body: formData
-        });
-
-        updateProgressBar(50, "Traitement en cours...");
-
-        if (!response.ok) {
-            let errorMessage = "Une erreur est survenue lors du traitement.";
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.detail || errorMessage;
-            } catch {
-                errorMessage = `Erreur HTTP ${response.status}`;
-            }
-            throw new Error(errorMessage);
+    // Suivi de la progression en pourcentage réel (0% -> 100%)
+    xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            updateProgressBar(percent, percent < 100 ? "Envoi du fichier..." : "Traitement serveur en cours...");
         }
+    };
 
-        updateProgressBar(80, "Finalisation du téléchargement...");
-
-        // Extraire le nom du fichier
-        const contentDisposition = response.headers.get("Content-Disposition");
-        let filename = "fichier_converti";
-        if (contentDisposition) {
-            const match = contentDisposition.match(/filename\*?=(?:"([^"]*)"|([^;,\n]*))/) ||
-                         contentDisposition.match(/filename="?([^"]+)"?/);
-            if (match) {
-                filename = decodeURIComponent(match[1] || match[2] || filename);
-            }
-        }
-
-        // Télécharger le fichier
-        const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(downloadUrl);
-
-        updateProgressBar(100, "✓ Conversion réussie ! Téléchargement en cours...");
-
-        // Afficher le message de succès
-        if (statusContainer) {
-            setTimeout(() => {
-                statusContainer.innerHTML = `
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
-                        <i class="fa-solid fa-check-circle text-green-600 text-xl mt-0.5 flex-shrink-0"></i>
-                        <div>
-                            <p class="font-semibold text-green-800">✓ Conversion réussie !</p>
-                            <p class="text-sm text-green-700">Fichier téléchargé : <strong>${escapeHtml(filename)}</strong></p>
-                        </div>
-                    </div>
-                `;
-            }, 500);
-        }
-
-        // Réinitialiser après 4 secondes
-        setTimeout(() => {
-            resetForm();
-        }, 4000);
-
-    } catch (error) {
-        showAlert("Erreur", error.message, "error");
-        console.error("Erreur traitement :", error);
-    } finally {
+    xhr.onload = async () => {
         isProcessing = false;
         if (convertBtn) convertBtn.disabled = false;
-    }
+
+        if (xhr.status === 200) {
+            currentBlob = xhr.response;
+
+            // Extraire le nom fourni par le serveur
+            const contentDisposition = xhr.getResponseHeader("Content-Disposition");
+            let filename = "fichier_converti";
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename\*?=(?:"([^"]*)"|([^;,\n]*))/) ||
+                             contentDisposition.match(/filename="?([^"]+)"?/);
+                if (match) {
+                    filename = decodeURIComponent(match[1] || match[2] || filename);
+                }
+            }
+
+            // Isoler l'extension du nom
+            const lastDot = filename.lastIndexOf(".");
+            if (lastDot !== -1) {
+                defaultExtension = filename.substring(lastDot);
+                filename = filename.substring(0, lastDot);
+            } else {
+                defaultExtension = "";
+            }
+
+            // Remplir l'input de renommage
+            if (nameInput) nameInput.value = filename;
+
+            // Masquer la barre et afficher le bloc de téléchargement
+            if (statusContainer) statusContainer.classList.add("hidden");
+            if (resultContainer) resultContainer.classList.remove("hidden");
+
+        } else {
+            let errorMsg = "Une erreur est survenue lors de la conversion.";
+            try {
+                const text = await xhr.response.text();
+                const json = JSON.parse(text);
+                errorMsg = json.detail || errorMsg;
+            } catch (e) {
+                errorMsg = `Erreur HTTP ${xhr.status}`;
+            }
+            showAlert("Erreur", errorMsg, "error");
+        }
+    };
+
+    xhr.onerror = () => {
+        isProcessing = false;
+        if (convertBtn) convertBtn.disabled = false;
+        showAlert("Erreur", "Une erreur réseau s'est produite.", "error");
+    };
+
+    xhr.send(formData);
 }
 
 function resetForm() {
