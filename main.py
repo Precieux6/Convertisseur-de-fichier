@@ -282,7 +282,12 @@ def convert_with_calibre(input_path: str, output_format: str, output_dir: str) -
         output_filename = f"{base_name}.{output_format.lower().strip()}"
         output_path = os.path.join(output_dir, output_filename)
 
-        # Execution via xvfb-run pour gérer le rendu headless Linux sans affichage X11
+        # Copie et ajout des variables d'environnement pour désactiver le Sandbox Chromium (Root Docker)
+        env = os.environ.copy()
+        env["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
+        env["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox"
+
+        # Lancement via xvfb-run pour gérer l'affichage sans écran (Headless)
         cmd = [
             "xvfb-run", "--auto-servernum",
             "ebook-convert",
@@ -290,7 +295,14 @@ def convert_with_calibre(input_path: str, output_format: str, output_dir: str) -
             output_path
         ]
         
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
+        result = subprocess.run(
+            cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True, 
+            timeout=120,
+            env=env
+        )
 
         if result.returncode != 0:
             logger.error(f"Erreur Calibre STDERR: {result.stderr}")
@@ -300,7 +312,7 @@ def convert_with_calibre(input_path: str, output_format: str, output_dir: str) -
         if not os.path.exists(output_path):
             raise FileNotFoundError(f"Fichier de sortie Ebook non trouvé: {output_path}")
 
-        logger.info(f"Ebook généré avec succès via Calibre: {output_path}")
+        logger.info(f"Fichier généré avec succès via Calibre: {output_path}")
         return output_path
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=504, detail="La conversion d'ebook a expiré (timeout 120s)")
