@@ -470,4 +470,12 @@ function showAlert(title, message, type = "info") {
     `;
 }
 
+function openModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+
 console.log("✓ FileConvert Pro v2.2.0 - Frontend initialisé");
