@@ -481,3 +481,4 @@ window.closeModal = function(id) {
 };
 
 console.log("✓ FileConvert Pro v2.2.0 - Frontend initialisé");
+
