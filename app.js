@@ -6,7 +6,7 @@ const MAX_FILE_SIZE_MB = 100;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 // Extensions autorisées
-const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.epub', '.mobi', '.azw3', '.txt', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.bmp'];
+const ALLOWED_EXTENSIONS = new Set(['pdf', 'docx', 'doc', 'epub', 'mobi', 'azw3', 'txt', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'bmp', 'avif']);
 
 let selectedFiles = [];
 let isProcessing = false;
@@ -125,10 +125,12 @@ function handleFiles(fileList) {
     const duplicates = [];
 
     for (let file of fileList) {
-        const ext = getFileExtension(file.name).toLowerCase();
+        // Extraction propre de l'extension en minuscules
+        const parts = file.name.split('.');
+        const ext = parts.length > 1 ? parts.pop().trim().toLowerCase() : '';
 
-        // Vérifier l'extension
-        if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        // Vérification dans le Set
+        if (!ALLOWED_EXTENSIONS.has(ext)) {
             rejectedFiles.push({
                 name: file.name,
                 reason: `Format non supporté (${ext})`
@@ -297,8 +299,7 @@ async function processFiles() {
         // Envoyer la requête
         const response = await fetch(`${API_URL}/convert`, {
             method: "POST",
-            body: formData,
-            timeout: 600000 // 10 minutes timeout
+            body: formData
         });
 
         updateProgressBar(50, "Traitement en cours...");
@@ -395,7 +396,8 @@ function resetForm() {
 // ============================================================
 
 function getFileExtension(filename) {
-    return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
+    const parts = filename.split('.');
+    return parts.length > 1 ? parts.pop().trim().toLowerCase() : '';
 }
 
 function escapeHtml(text) {
