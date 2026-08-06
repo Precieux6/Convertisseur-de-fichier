@@ -224,7 +224,7 @@ function updateFileList() {
                 class="ml-2 px-3 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors font-semibold text-sm group-hover:opacity-100 opacity-70"
                 title="Supprimer ce fichier"
             >
-                ✕ Supprimer
+                <i class="fa-solid fa-trash-can text-lg"></i>
             </button>
         `;
         fileList.appendChild(fileItem);
