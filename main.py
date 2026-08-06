@@ -463,7 +463,7 @@ async def convert_files(
             elif single_file.endswith(".epub"):
                 mime_type = "application/epub+zip"
             elif single_file.endswith(".mobi"):
-        mime_type = "application/x-mobi8-ebook"
+            mime_type = "application/x-mobi8-ebook"
 
     background_tasks.add_task(cleanup_directory, job_dir)
 
