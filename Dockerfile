@@ -1,9 +1,10 @@
 # 1. Utiliser une base Linux avec Python
 FROM python:3.10-slim
 
-# 2. Installer LibreOffice et les outils système
+# 2. Installer LibreOffice, Calibre et les outils système
 RUN apt-get update && apt-get install -y \
     libreoffice \
+    calibre \
     fonts-liberation \
     fontconfig \
     cabextract \
