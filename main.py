@@ -79,9 +79,7 @@ def cleanup_old_jobs(max_age_hours=2):
 
 def sanitize_filename(filename: str) -> str:
     """Nettoie le nom de fichier pour éviter les injections."""
-    # Enlever les chemins relatifs/absolus
     filename = os.path.basename(filename)
-    # Remplacer les caractères dangereux
     filename = re.sub(r'[^\w\s.-]', '', filename)
     return filename or "file"
 
@@ -90,14 +88,12 @@ def validate_file(file: UploadFile) -> bool:
     """Valide l'extension et le MIME type du fichier."""
     ext = os.path.splitext(file.filename)[1].lower()
     
-    # Vérifier l'extension
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
             detail=f"Extension non autorisée : {ext}. Formats acceptés : {', '.join(ALLOWED_EXTENSIONS)}"
         )
     
-    # Vérifier le MIME type
     if file.content_type and file.content_type not in ALLOWED_MIME_TYPES:
         logger.warning(f"MIME type suspecte : {file.content_type} pour {file.filename}")
     
@@ -159,7 +155,6 @@ def compress_pdf(pdf_path: str, output_path: str):
     try:
         doc = fitz.open(pdf_path)
         for page_num, page in enumerate(doc):
-            # Réduire les images de la page
             for img_index in page.get_images():
                 xref = page.get_image_info(img_index)[-1]
                 doc.fullcopy_page(xref, shrink=2)
@@ -168,7 +163,6 @@ def compress_pdf(pdf_path: str, output_path: str):
         logger.info(f"PDF compressé : {output_path}")
     except Exception as e:
         logger.warning(f"Compression PDF échouée (retour à l'original) : {str(e)}")
-        # Copier l'original si la compression échoue
         shutil.copy2(pdf_path, output_path)
 
 
@@ -212,10 +206,10 @@ def split_pdf_pages(pdf_path: str, page_range_str: str, output_dir: str) -> str:
 
 
 def parse_page_range(page_range_str: str, max_pages: int) -> List[int]:
-    """Parse '1-3, 5, 8-10' en liste [0, 1, 2, 4, 7, 8, 9]."""
+    """Parse '1-3, 5, 8-10' en liste d'index de pages."""
     pages = set()
     if not page_range_str or not page_range_str.strip():
-        return list(range(max_pages))  # Retourner toutes les pages
+        return list(range(max_pages))
     
     parts = page_range_str.split(',')
     for part in parts:
@@ -246,7 +240,6 @@ def convert_images_to_pdf(image_paths: List[str], output_pdf_path: str):
         converted_images = []
         for img_path in image_paths:
             ext = os.path.splitext(img_path)[1].lower()
-            # Convertir les formats non-standard
             if ext in [".heic", ".webp"]:
                 img = Image.open(img_path)
                 jpg_path = img_path + ".jpg"
@@ -255,13 +248,13 @@ def convert_images_to_pdf(image_paths: List[str], output_pdf_path: str):
             else:
                 converted_images.append(img_path)
         
-        # Convertir en PDF
         with open(output_pdf_path, "wb") as f:
             f.write(img2pdf.convert(converted_images))
         
         logger.info(f"Images converties en PDF : {output_pdf_path}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur conversion images : {str(e)}")
+
 
 def convert_pdf_to_docx(pdf_path: str, output_dir: str) -> str:
     """Convertit un fichier PDF en document Word (.docx)."""
@@ -274,18 +267,16 @@ def convert_pdf_to_docx(pdf_path: str, output_dir: str) -> str:
         cv.close()
         
         if not os.path.exists(docx_path):
-            raise FileNotFoundError(f"Conversion échouée : {docx_path} non trouvé")
+            raise FileNotFoundError(f"Conversion PDF->DOCX échouée : {docx_path} non trouvé")
             
         logger.info(f"PDF converti en DOCX : {docx_path}")
         return docx_path
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur conversion PDF vers DOCX : {str(e)}")
 
+
 def convert_with_calibre(input_path: str, output_format: str, output_dir: str) -> str:
-    """
-    Convertit n'importe quel document source vers le format Ebook désiré
-    en utilisant l'outil CLI Calibre (ebook-convert).
-    """
+    """Convertit un document en Ebook avec Calibre (ebook-convert)."""
     try:
         base_name = os.path.splitext(os.path.basename(input_path))[0]
         output_filename = f"{base_name}.{output_format.lower().strip()}"
@@ -297,7 +288,6 @@ def convert_with_calibre(input_path: str, output_format: str, output_dir: str) -
             output_path
         ]
         
-        # Exécution avec un timeout de 120 secondes (la conversion d'ebooks peut prendre un peu de temps)
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
 
         if result.returncode != 0:
@@ -313,7 +303,8 @@ def convert_with_calibre(input_path: str, output_format: str, output_dir: str) -
         raise HTTPException(status_code=504, detail="La conversion d'ebook a expiré (timeout 120s)")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur conversion Ebook : {str(e)}")
-        
+
+
 # ============================================================
 # ENDPOINTS API
 # ============================================================
@@ -336,20 +327,9 @@ async def convert_files(
     password: str = Form(default=""),
     compress: bool = Form(default=False)
 ):
-    """
-    Endpoint principal de conversion.
-    Supporte :
-    - Conversion de formats
-    - Fusion de PDFs
-    - Division de PDFs
-    - Chiffrement PDF
-    - Compression PDF
-    """
-    
     if not files:
         raise HTTPException(status_code=400, detail="Aucun fichier fourni")
     
-    # Valider chaque fichier
     for file in files:
         file.file.seek(0, 2)
         file_size = file.file.tell()
@@ -368,7 +348,6 @@ async def convert_files(
     os.makedirs(job_dir, exist_ok=True)
     
     try:
-        # 1️⃣ Sauvegarder les fichiers
         saved_paths = []
         for file in files:
             safe_filename = sanitize_filename(file.filename)
@@ -377,7 +356,6 @@ async def convert_files(
                 shutil.copyfileobj(file.file, buffer)
             saved_paths.append(file_path)
         
-        # 2️⃣ Traiter les fichiers
         processed_paths = []
         image_batch = []
         pdf_batch = []
@@ -388,43 +366,35 @@ async def convert_files(
         for path in saved_paths:
             ext = os.path.splitext(path)[1].lower()
             
-            # Si le format de sortie demandé est un Ebook OU si le fichier d'entrée est un Ebook
             if target_fmt in EBOOK_FORMATS or ext in ['.epub', '.mobi', '.azw3']:
                 ebook_output = convert_with_calibre(path, target_fmt, job_dir)
                 processed_paths.append(ebook_output)
 
-            # Traiter Word vers PDF classique
             elif ext in [".docx", ".doc"]:
                 pdf_path = convert_docx_to_pdf_libreoffice(path, job_dir)
                 pdf_batch.append(pdf_path)
             
-            # Traiter les images
             elif ext in [".jpg", ".jpeg", ".png", ".webp", ".heic", ".bmp"]:
                 image_batch.append(path)
             
-            # Traiter PDFs
-elif ext == ".pdf":
-    if target_fmt in ["docx", "doc"]:
-        docx_file = convert_pdf_to_docx(path, job_dir)
-        processed_paths.append(docx_file)
-    else:
-        pdf_batch.append(path)
+            elif ext == ".pdf":
+                if target_fmt in ["docx", "doc"]:
+                    docx_file = convert_pdf_to_docx(path, job_dir)
+                    processed_paths.append(docx_file)
+                else:
+                    pdf_batch.append(path)
             
-            # Autres formats
             else:
                 processed_paths.append(path)
         
-        # Convertir les images en PDF
         if image_batch:
             images_pdf_path = os.path.join(job_dir, "images_converted.pdf")
             convert_images_to_pdf(image_batch, images_pdf_path)
             pdf_batch.append(images_pdf_path)
         
-        # 3️⃣ Opérations PDF avancées
         final_pdf = None
         
         if pdf_batch:
-            # Fusion si demandée ET si plusieurs fichiers
             if merge and len(pdf_batch) > 1:
                 merged_path = os.path.join(job_dir, "merged.pdf")
                 merge_pdfs(pdf_batch, merged_path)
@@ -432,43 +402,36 @@ elif ext == ".pdf":
             elif len(pdf_batch) == 1:
                 final_pdf = pdf_batch[0]
             elif len(pdf_batch) > 1:
-                # Pas de fusion demandée mais plusieurs PDFs → zipper
                 processed_paths.extend(pdf_batch)
             
-            # Division si demandée
             if split and final_pdf and page_range:
-                split_path = os.path.join(job_dir, "split.pdf")
                 final_pdf = split_pdf_pages(final_pdf, page_range, job_dir)
             
-            # Compression si demandée
             if compress and final_pdf:
                 compressed_path = os.path.join(job_dir, "compressed.pdf")
                 compress_pdf(final_pdf, compressed_path)
                 final_pdf = compressed_path
             
-            # Chiffrement si demandé
             if secure and password and final_pdf:
                 encrypted_path = os.path.join(job_dir, "encrypted.pdf")
                 encrypt_pdf(final_pdf, password, encrypted_path)
                 final_pdf = encrypted_path
             
-            # Ajouter le PDF final à la liste
             if final_pdf:
                 processed_paths.append(final_pdf)
             else:
                 processed_paths.extend(pdf_batch)
         
-        # 4️⃣ Retourner les fichiers
         if not processed_paths:
             raise HTTPException(status_code=500, detail="Aucun fichier traité")
         
-        # Un seul fichier : le retourner directement
         if len(processed_paths) == 1:
             single_file = processed_paths[0]
-            # Détection basique du type MIME pour la réponse
             mime_type = "application/octet-stream"
             if single_file.endswith(".pdf"):
                 mime_type = "application/pdf"
+            elif single_file.endswith(".docx"):
+                mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             elif single_file.endswith(".epub"):
                 mime_type = "application/epub+zip"
             elif single_file.endswith(".mobi"):
@@ -480,7 +443,6 @@ elif ext == ".pdf":
                 filename=os.path.basename(single_file)
             )
         
-        # Plusieurs fichiers : zipper
         zip_base_path = os.path.join(TEMP_DIR, f"converted_{job_id}")
         zip_file_path = shutil.make_archive(zip_base_path, 'zip', job_dir)
         
@@ -504,7 +466,6 @@ async def split_pdf_endpoint(
     file: UploadFile = File(...),
     pages: str = Form(...)
 ):
-    """Découpe un PDF selon une plage de pages."""
     file.file.seek(0, 2)
     file_size = file.file.tell()
     file.file.seek(0)
@@ -546,7 +507,6 @@ async def split_pdf_endpoint(
 
 @app.on_event("startup")
 async def startup_event():
-    """Événement au démarrage du serveur."""
     logger.info("FileConvert Pro API v2.2.0 démarrée")
     cleanup_old_jobs()
 
